@@ -130,6 +130,45 @@ impl Grid {
 
         result
     }
+
+    fn find_x_mas(&self) -> u32 {
+        if self.cols_len() < 3 || self.rows_len() < 3 {
+            return 0;
+        }
+
+        let mut result = 0;
+
+        let mut col = 1;
+
+        while col < self.cols_len() - 1 {
+            let mut row = 1;
+            while row < self.rows_len() - 1 {
+                let mut chars1 = [' '; 3];
+                let mut chars2 = [' '; 3];
+
+                chars1[0] = self.cells[row - 1][col - 1];
+                chars1[1] = self.cells[row][col];
+                chars1[2] = self.cells[row + 1][col + 1];
+                chars2[0] = self.cells[row - 1][col + 1];
+                chars2[1] = self.cells[row][col];
+                chars2[2] = self.cells[row + 1][col - 1];
+
+                let string1 = chars1.iter().collect::<String>();
+                let string2 = chars2.iter().collect::<String>();
+
+                if (string1 == "MAS" || string1 == "SAM") && (string2 == "MAS" || string2 == "SAM")
+                {
+                    result += 1;
+                }
+
+                row += 1;
+            }
+
+            col += 1;
+        }
+
+        result
+    }
 }
 
 impl Solution for Day4 {
@@ -140,8 +179,9 @@ impl Solution for Day4 {
     }
 
     fn part2(&self, input: &str) -> String {
-        // Implement Part 2 solution
-        String::from("Not implemented")
+        let grid = Grid::parse(input);
+
+        grid.find_x_mas().to_string()
     }
 }
 
