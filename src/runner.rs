@@ -104,7 +104,7 @@ fn run_day_solution(year: u32, day: u32) -> io::Result<()> {
 
     if output.status.success() {
         println!("Year {} Day {} Solution Output:", year, day);
-        println!("{}", String::from_utf8_lossy(&output.stdout));
+        print!("{}", String::from_utf8_lossy(&output.stdout));
     } else {
         eprintln!("Error running Year {} Day {} solution:", year, day);
         eprintln!("{}", String::from_utf8_lossy(&output.stderr));

@@ -1,4 +1,4 @@
-mod aoc_solution;
-mod years;
+pub mod aoc_solution;
+pub mod years;
 
-fn main() {}
+pub fn main() {}
