@@ -12,4 +12,5 @@ name = "run_day"
 path = "src/run_day.rs"
 
 [dependencies]
+dedent = "0.1.1"
 regex = "1.11.1"
