@@ -63,6 +63,39 @@ impl PrintQueue {
 
         true
     }
+
+    fn fix_update(&self, update: &Vec<u32>) -> Vec<u32> {
+        let mut printed_pages = HashSet::new();
+        let mut result = update.clone();
+
+        for i in 0..result.len() {
+            let page = result[i];
+
+            if !printed_pages.is_empty() {
+                match self.ordering_rules.get(&page) {
+                    Some(must_be_before_list) => {
+                        for must_be_before in must_be_before_list {
+                            if printed_pages.contains(must_be_before) {
+                                let error_index = i;
+                                if let Some(must_be_before_index) =
+                                    result.iter().position(|it| it == must_be_before)
+                                {
+                                    result.insert(must_be_before_index, page);
+                                    result.remove(error_index + 1);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    None => {}
+                }
+            }
+
+            printed_pages.insert(page);
+        }
+
+        result
+    }
 }
 
 impl Solution for Day5 {
@@ -83,7 +116,28 @@ impl Solution for Day5 {
     }
 
     fn part2(&self, input: &str) -> String {
-        // Implement Part 2 solution
-        String::from("Not implemented")
+        let print_queue = PrintQueue::parse_input(input.trim());
+        let invalid_updates = print_queue.updates.iter().filter_map(|update| {
+            if print_queue.is_valid_update(update) {
+                None
+            } else {
+                let mut fixed = update.clone();
+
+                while !print_queue.is_valid_update(&fixed) {
+                    fixed = print_queue.fix_update(&fixed);
+                }
+
+                Some(fixed)
+            }
+        });
+
+        invalid_updates
+            .map(|update| {
+                let mid = update.len() / 2;
+
+                update[mid]
+            })
+            .sum::<u32>()
+            .to_string()
     }
 }
