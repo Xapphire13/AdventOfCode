@@ -18,7 +18,7 @@ fn create_year_structure(year: u32) -> io::Result<()> {
     // Update years/mod.rs to include the new year
     let years_mod_content = fs::read_to_string(years_mod_path)?;
     if !years_mod_content.contains(&format!("pub mod aoc_{};", year)) {
-        let mut updated_content = years_mod_content;
+        let mut updated_content = years_mod_content.trim().to_string();
         updated_content.push_str(&format!("\npub mod aoc_{};", year));
 
         fs::write(years_mod_path, updated_content)?;
