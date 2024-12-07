@@ -85,6 +85,26 @@ impl Solution for Day{day} {{
         fs::write(&year_mod_path, updated_content)?;
     }
 
+    // Add to day runner
+    let run_day_path = "src/run_day.rs";
+    let run_day_content = fs::read_to_string(run_day_path)?;
+    if let Some(insertion_index) = run_day_content
+        .lines()
+        .position(|line| line.contains("// Add more year and day solutions here"))
+    {
+        let new_line = format!(
+            "        ({0}, {1}) => run_day_solution(years::aoc_2024::day{1:02}::Day{1}, input),",
+            year, day
+        );
+
+        if !run_day_content.contains(&new_line) {
+            let mut new_lines: Vec<&str> = run_day_content.lines().collect();
+            new_lines.insert(insertion_index, new_line.as_str());
+
+            fs::write(&run_day_path, new_lines.join("\n"))?;
+        }
+    }
+
     println!("Created solution files for Year {} Day {}", year, day);
     Ok(())
 }
