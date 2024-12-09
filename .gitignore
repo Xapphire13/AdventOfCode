@@ -1,6 +1,7 @@
 /target
 .replit
 replit.nix
+input.txt
 
 # Added by cargo
 #
