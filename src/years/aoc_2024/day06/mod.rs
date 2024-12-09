@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::aoc_solution::Solution;
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Copy)]
 enum Direction {
     Up,
     Down,
@@ -53,11 +53,12 @@ impl Cell {
 struct Map {
     cells: Vec<Vec<Cell>>,
     guard_position_history: Vec<(usize, usize, Direction)>, // (x, y, Direction)
+    guard_position: Option<(usize, usize, Direction)>,
 }
 
 impl Map {
     fn parse_input(input: &str) -> Map {
-        let locations = input
+        let cells: Vec<Vec<Cell>> = input
             .lines()
             .map(|line| {
                 line.chars()
@@ -66,30 +67,21 @@ impl Map {
             })
             .collect();
 
-        let mut map = Map {
-            cells: locations,
-            guard_position_history: vec![],
-        };
-
-        if let Some((x, y)) = map.get_guard_position() {
-            if let Cell::Guard { direction } = map.get_cell(x, y) {
-                map.guard_position_history.push((x, y, direction.clone()));
-            }
-        }
-
-        map
-    }
-
-    fn get_guard_position(&self) -> Option<(usize, usize)> {
-        for (y, row) in self.cells.iter().enumerate() {
+        let mut guard_position = None;
+        'outer: for (y, row) in cells.iter().enumerate() {
             for (x, cell) in row.iter().enumerate() {
-                if let Cell::Guard { direction: _ } = cell {
-                    return Some((x, y));
+                if let Cell::Guard { direction } = cell {
+                    guard_position = Some((x, y, *direction));
+                    break 'outer;
                 }
             }
         }
 
-        None
+        Map {
+            cells,
+            guard_position_history: vec![guard_position.unwrap()],
+            guard_position,
+        }
     }
 
     fn row_len(&self) -> usize {
@@ -106,29 +98,26 @@ impl Map {
 
     /** Simulates one unit of time, allowing the guard to make their next move */
     fn simulate(&mut self) {
-        if let Some((x, y)) = self.get_guard_position() {
-            let mut next_position = None;
+        if let Some((x, y, direction)) = self.guard_position {
+            let next_position;
 
-            match self.get_cell(x, y) {
-                Cell::Guard { direction } => match direction {
-                    Direction::Up => next_position = if y > 0 { Some((x, y - 1)) } else { None },
-                    Direction::Down => {
-                        next_position = if y < self.row_len() - 1 {
-                            Some((x, y + 1))
-                        } else {
-                            None
-                        }
+            match direction {
+                Direction::Up => next_position = if y > 0 { Some((x, y - 1)) } else { None },
+                Direction::Down => {
+                    next_position = if y < self.row_len() - 1 {
+                        Some((x, y + 1))
+                    } else {
+                        None
                     }
-                    Direction::Left => next_position = if x > 0 { Some((x - 1, y)) } else { None },
-                    Direction::Right => {
-                        next_position = if x < self.col_len() - 1 {
-                            Some((x + 1, y))
-                        } else {
-                            None
-                        }
+                }
+                Direction::Left => next_position = if x > 0 { Some((x - 1, y)) } else { None },
+                Direction::Right => {
+                    next_position = if x < self.col_len() - 1 {
+                        Some((x + 1, y))
+                    } else {
+                        None
                     }
-                },
-                _ => {}
+                }
             }
 
             if let Some((next_x, next_y)) = next_position {
@@ -137,15 +126,12 @@ impl Map {
                 match next_cell {
                     Cell::Empty => {
                         // Move guard forward
-                        let guard = self.get_cell(x, y).clone();
+                        self.cells[next_y][next_x] = self.get_cell(x, y).clone();
                         self.cells[y][x] = Cell::Empty;
-                        self.cells[next_y][next_x] = guard;
 
-                        if let Some((x, y)) = self.get_guard_position() {
-                            if let Cell::Guard { direction } = self.get_cell(x, y) {
-                                self.guard_position_history.push((x, y, direction.clone()));
-                            }
-                        }
+                        let new_position = (next_x, next_y, direction);
+                        self.guard_position = Some(new_position);
+                        self.guard_position_history.push(new_position);
                     }
                     Cell::Blocked => {
                         // Rotate guard
@@ -157,6 +143,7 @@ impl Map {
                             self.cells[y][x] = Cell::Guard {
                                 direction: next_direction,
                             };
+                            self.guard_position = Some((x, y, next_direction));
                         }
                     }
                     Cell::Guard { direction: _ } => {}
@@ -164,6 +151,7 @@ impl Map {
             } else {
                 // Guard left the map
                 self.cells[y][x] = Cell::Empty;
+                self.guard_position = None;
             }
         }
     }
@@ -175,7 +163,7 @@ impl Solution for Day6 {
     fn part1(&self, input: &str) -> String {
         let mut map = Map::parse_input(input.trim());
 
-        while let Some(_) = map.get_guard_position() {
+        while map.guard_position.is_some() {
             map.simulate();
         }
 
@@ -191,98 +179,42 @@ impl Solution for Day6 {
     fn part2(&self, input: &str) -> String {
         let mut map = Map::parse_input(input.trim());
 
-        // Find the guard's path
-        while let Some(_) = map.get_guard_position() {
+        // Calculate all positions the guard walks
+        while map.guard_position.is_some() {
             map.simulate();
         }
 
+        let mut unique_guard_positions = map
+            .guard_position_history
+            .iter()
+            .map(|(x, y, _)| (*x, *y))
+            .collect::<HashSet<_>>();
+        let initial_position = map.guard_position_history[0];
+        unique_guard_positions.remove(&(initial_position.0, initial_position.1));
         let mut result = 0;
-        'outer: for i in (2..(map.guard_position_history.len())).rev() {
-            // Starting from the last position on the guards route
-            // Determing if blocking this space would cause a cycle.
-            // A cycle will be caused if there exists a position to the right of the previous space
-            // for which we have visitied before, going in the same direction
-            let (_, _, direction) = map.guard_position_history[i].clone();
-            let (prev_x, prev_y, _) = map.guard_position_history[i - 1].clone();
-            let next_direction = direction.rotate_right();
+        let mut blockages = vec![];
 
-            match next_direction {
-                Direction::Up => {
-                    for j in 0..prev_y {
-                        if map
-                            .guard_position_history
-                            .iter()
-                            .take(i - 2)
-                            .any(|hist| *hist == (prev_x, j, next_direction.clone()))
-                        {
-                            // Placing block here would cause a cycle
-                            result += 1;
-                            continue 'outer;
-                        }
-                    }
-                }
-                Direction::Down => {
-                    for j in (prev_y + 1)..map.row_len() {
-                        if map
-                            .guard_position_history
-                            .iter()
-                            .take(i - 2)
-                            .any(|hist| *hist == (prev_x, j, next_direction.clone()))
-                        {
-                            // Placing block here would cause a cycle
-                            result += 1;
-                            continue 'outer;
-                        }
-                    }
-                }
-                Direction::Left => {
-                    for j in 0..prev_x {
-                        if map
-                            .guard_position_history
-                            .iter()
-                            .take(i - 2)
-                            .any(|hist| *hist == (j, prev_y, next_direction.clone()))
-                        {
-                            // Placing block here would cause a cycle
-                            result += 1;
-                            continue 'outer;
-                        }
-                    }
-                }
-                Direction::Right => {
-                    for j in (prev_x + 1)..map.col_len() {
-                        if map
-                            .guard_position_history
-                            .iter()
-                            .take(i - 2)
-                            .any(|hist| *hist == (j, prev_y, next_direction.clone()))
-                        {
-                            // Placing block here would cause a cycle
-                            result += 1;
-                            continue 'outer;
-                        }
-                    }
-                }
-            }
-        }
+        // For each position (other than starting position)
+        // Test if blocking it results in a cycle
+        for (x, y) in unique_guard_positions.iter() {
+            map = Map::parse_input(input.trim());
+            map.cells[*y][*x] = Cell::Blocked;
 
-        // Check if blocking the guards initial next position would cause a loop
-        let mut new_map = Map::parse_input(input.trim());
-        let initial_next = map.guard_position_history[1].clone();
-        new_map.cells[initial_next.1][initial_next.0] = Cell::Blocked;
-        while let Some(_) = new_map.get_guard_position() {
-            new_map.simulate();
+            let mut position_set = HashSet::new();
+            position_set.insert(map.guard_position.unwrap());
+            while map.guard_position.is_some() {
+                map.simulate();
 
-            let set: HashSet<(usize, usize, Direction)> = new_map
-                .guard_position_history
-                .iter()
-                .map(|(x, y, direction)| (*x, *y, direction.clone()))
-                .collect();
+                // If we found a cycle (guard is walking in the same spot and direction)
+                if let Some(current_position) = map.guard_position {
+                    if position_set.contains(&current_position) {
+                        blockages.push(current_position);
+                        result += 1;
+                        break;
+                    }
 
-            // We're in a loop if we've traveled more times than the number of spaces we've been
-            if new_map.guard_position_history.len() > set.len() {
-                result += 1;
-                break;
+                    position_set.insert(current_position);
+                }
             }
         }
 
