@@ -49,12 +49,10 @@ pub struct Day{day};
 
 impl Solution for Day{day} {{
     fn part1(&self, input: &str) -> String {{
-        // Implement Part 1 solution
-        String::from(\"Not implemented\")
+        todo!()
     }}
 
     fn part2(&self, input: &str) -> String {{
-        // Implement Part 2 solution
         String::from(\"Not implemented\")
     }}
 }}"

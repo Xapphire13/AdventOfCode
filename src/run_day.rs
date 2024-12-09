@@ -54,6 +54,7 @@ fn main() {
         (2024, 4) => run_day_solution(years::aoc_2024::day04::Day4, input),
         (2024, 5) => run_day_solution(years::aoc_2024::day05::Day5, input),
         (2024, 6) => run_day_solution(years::aoc_2024::day06::Day6, input),
+        (2024, 7) => run_day_solution(years::aoc_2024::day07::Day7, input),
         // Add more year and day solutions here
         _ => {
             eprintln!("Solution for Year {} Day {} not implemented", year, day_num);
