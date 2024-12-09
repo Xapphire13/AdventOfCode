@@ -7,6 +7,10 @@ struct Test {
     operands: Vec<u64>,
 }
 
+fn concat_op(left: u64, right: u64) -> u64 {
+    format!("{}{}", left, right).parse().unwrap()
+}
+
 impl Test {
     fn is_valid(&self) -> bool {
         fn test(result: u64, acc: u64, curr: u64, next: &[u64]) -> bool {
@@ -23,6 +27,38 @@ impl Test {
             }
 
             if (acc * curr) <= result && test(result, acc * curr, next[0], &next[1..]) {
+                return true;
+            }
+
+            false
+        }
+
+        test(self.result, 0, self.operands[0], &self.operands[1..])
+    }
+
+    fn is_valid2(&self) -> bool {
+        fn test(result: u64, acc: u64, curr: u64, next: &[u64]) -> bool {
+            if acc > result {
+                return false;
+            }
+
+            if next.len() == 0 {
+                return (acc + curr) == result
+                    || (acc * curr) == result
+                    || concat_op(acc, curr) == result;
+            }
+
+            if (acc + curr) <= result && test(result, acc + curr, next[0], &next[1..]) {
+                return true;
+            }
+
+            if (acc * curr) <= result && test(result, acc * curr, next[0], &next[1..]) {
+                return true;
+            }
+
+            if concat_op(acc, curr) <= result
+                && test(result, concat_op(acc, curr), next[0], &next[1..])
+            {
                 return true;
             }
 
@@ -80,8 +116,21 @@ impl Solution for Day7 {
     }
 
     fn part2(&self, input: &str) -> String {
-        // Implement Part 2 solution
-        String::from("Not implemented")
+        let problem = Problem::parse_input(input);
+
+        let result: u64 = problem
+            .tests
+            .iter()
+            .filter_map(|test| {
+                if test.is_valid2() {
+                    Some(test.result)
+                } else {
+                    None
+                }
+            })
+            .sum();
+
+        result.to_string()
     }
 }
 
