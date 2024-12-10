@@ -109,7 +109,7 @@ impl Solution for Day{day} {{
 
 fn run_day_solution(year: u32, day: u32) -> io::Result<()> {
     // Dynamically load the day's solution
-    let output = Command::new("cargo")
+    let mut child = Command::new("cargo")
         .args(&[
             "run",
             "--bin",
@@ -118,14 +118,12 @@ fn run_day_solution(year: u32, day: u32) -> io::Result<()> {
             &year.to_string(),
             &day.to_string(),
         ])
-        .output()?;
+        .spawn()?;
 
-    if output.status.success() {
-        println!("Year {} Day {} Solution Output:", year, day);
-        print!("{}", String::from_utf8_lossy(&output.stdout));
-    } else {
-        eprintln!("Error running Year {} Day {} solution:", year, day);
-        eprintln!("{}", String::from_utf8_lossy(&output.stderr));
+    let status = child.wait()?;
+
+    if !status.success() {
+        eprintln!("Command failed with exit code: {}", status);
     }
 
     Ok(())
