@@ -3,6 +3,8 @@ use std::{
     ops,
 };
 
+use num::Integer;
+
 use crate::aoc_solution::Solution;
 
 pub struct Day8;
@@ -42,6 +44,14 @@ impl Line {
             self.end.0 as i32 - self.start.0 as i32,
             self.end.1 as i32 - self.start.1 as i32,
         )
+    }
+
+    fn normalized_slope(&self) -> Slope {
+        let (x, y) = self.slope();
+
+        let gcd = x.gcd(&y);
+
+        (x / gcd, y / gcd)
     }
 }
 
@@ -90,8 +100,8 @@ impl Problem {
         self.map.len()
     }
 
-    fn find_antinodes(&self) -> Vec<Antinode> {
-        let mut antenna_groups: HashMap<char, Vec<Position>> = HashMap::new();
+    fn antenna_groups(&self) -> HashMap<char, Vec<Position>> {
+        let mut antenna_groups = HashMap::new();
         self.map
             .iter()
             .enumerate()
@@ -112,6 +122,14 @@ impl Problem {
             });
 
         antenna_groups
+    }
+
+    fn in_bounds(&self, (x, y): Position) -> bool {
+        x >= 0 && y >= 0 && x < self.map_width() as i32 && y < self.map_height() as i32
+    }
+
+    fn find_antinodes(&self) -> Vec<Antinode> {
+        self.antenna_groups()
             .iter()
             .flat_map(|(frequency, group)| {
                 let lines = antenna_group_to_lines(group);
@@ -132,13 +150,49 @@ impl Problem {
                             },
                         ]
                     })
-                    .filter(|antinode| {
-                        let (x, y) = antinode.position;
+                    .filter(|antinode| self.in_bounds(antinode.position))
+                    .collect::<Vec<_>>()
+            })
+            .collect()
+    }
 
-                        x >= 0
-                            && y >= 0
-                            && x < self.map_width() as i32
-                            && y < self.map_height() as i32
+    fn find_antinodes_2(&self) -> Vec<Antinode> {
+        self.antenna_groups()
+            .iter()
+            .flat_map(|(frequency, group)| {
+                let lines = antenna_group_to_lines(group);
+
+                lines
+                    .iter()
+                    .flat_map(|line| {
+                        let slope = line.normalized_slope();
+                        let mut antinodes: Vec<Antinode> = vec![];
+
+                        let mut potential_antinode = line.start;
+                        while self.in_bounds(potential_antinode) {
+                            antinodes.push({
+                                Antinode {
+                                    position: potential_antinode,
+                                    frequency: *frequency,
+                                }
+                            });
+
+                            potential_antinode = sub(potential_antinode, slope);
+                        }
+
+                        let mut potential_antinode = add(line.start, slope);
+                        while self.in_bounds(potential_antinode) {
+                            antinodes.push({
+                                Antinode {
+                                    position: potential_antinode,
+                                    frequency: *frequency,
+                                }
+                            });
+
+                            potential_antinode = add(potential_antinode, slope);
+                        }
+
+                        antinodes
                     })
                     .collect::<Vec<_>>()
             })
@@ -161,7 +215,16 @@ impl Solution for Day8 {
     }
 
     fn part2(&self, input: &str) -> String {
-        String::from("Not implemented")
+        let problem = Problem::parse_input(input.trim());
+
+        let antinodes = problem.find_antinodes_2();
+
+        antinodes
+            .iter()
+            .map(|antinode| antinode.position)
+            .collect::<HashSet<_>>()
+            .len()
+            .to_string()
     }
 }
 
