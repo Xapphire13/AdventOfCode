@@ -1,13 +1,8 @@
-use std::{
-    collections::{HashMap, HashSet},
-    ops,
-};
+use std::collections::{HashMap, HashSet};
 
 use num::Integer;
 
 use crate::aoc_solution::Solution;
-
-pub struct Day8;
 
 type Position = (i32, i32);
 type Slope = (i32, i32);
@@ -199,6 +194,8 @@ impl Problem {
             .collect()
     }
 }
+
+pub struct Day8;
 
 impl Solution for Day8 {
     fn part1(&self, input: &str) -> String {
