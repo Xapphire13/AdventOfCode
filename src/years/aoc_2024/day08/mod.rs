@@ -7,12 +7,6 @@ use crate::aoc_solution::Solution;
 type Position = (i32, i32);
 type Slope = (i32, i32);
 
-#[derive(Debug)]
-struct Antinode {
-    position: Position,
-    frequency: char,
-}
-
 #[derive(Clone, Copy, Debug)]
 enum Cell {
     Empty,
@@ -123,10 +117,10 @@ impl Problem {
         x >= 0 && y >= 0 && x < self.map_width() as i32 && y < self.map_height() as i32
     }
 
-    fn find_antinodes(&self) -> Vec<Antinode> {
+    fn find_antinode_positions(&self) -> Vec<Position> {
         self.antenna_groups()
-            .iter()
-            .flat_map(|(frequency, group)| {
+            .values()
+            .flat_map(|group| {
                 let lines = antenna_group_to_lines(group);
 
                 lines
@@ -134,55 +128,36 @@ impl Problem {
                     .flat_map(|line| {
                         let slope = line.slope();
 
-                        [
-                            Antinode {
-                                frequency: *frequency,
-                                position: sub(line.start, slope),
-                            },
-                            Antinode {
-                                frequency: *frequency,
-                                position: add(line.end, slope),
-                            },
-                        ]
+                        [sub(line.start, slope), add(line.end, slope)]
                     })
-                    .filter(|antinode| self.in_bounds(antinode.position))
+                    .filter(|antinode_pos| self.in_bounds(*antinode_pos))
                     .collect::<Vec<_>>()
             })
             .collect()
     }
 
-    fn find_antinodes_2(&self) -> Vec<Antinode> {
+    fn find_antinode_positions_2(&self) -> Vec<Position> {
         self.antenna_groups()
-            .iter()
-            .flat_map(|(frequency, group)| {
+            .values()
+            .flat_map(|group| {
                 let lines = antenna_group_to_lines(group);
 
                 lines
                     .iter()
                     .flat_map(|line| {
                         let slope = line.normalized_slope();
-                        let mut antinodes: Vec<Antinode> = vec![];
+                        let mut antinodes: Vec<Position> = vec![];
 
                         let mut potential_antinode = line.start;
                         while self.in_bounds(potential_antinode) {
-                            antinodes.push({
-                                Antinode {
-                                    position: potential_antinode,
-                                    frequency: *frequency,
-                                }
-                            });
+                            antinodes.push(potential_antinode);
 
                             potential_antinode = sub(potential_antinode, slope);
                         }
 
                         let mut potential_antinode = add(line.start, slope);
                         while self.in_bounds(potential_antinode) {
-                            antinodes.push({
-                                Antinode {
-                                    position: potential_antinode,
-                                    frequency: *frequency,
-                                }
-                            });
+                            antinodes.push(potential_antinode);
 
                             potential_antinode = add(potential_antinode, slope);
                         }
@@ -201,27 +176,17 @@ impl Solution for Day8 {
     fn part1(&self, input: &str) -> String {
         let problem = Problem::parse_input(input.trim());
 
-        let antinodes = problem.find_antinodes();
+        let antinodes = problem.find_antinode_positions();
 
-        antinodes
-            .iter()
-            .map(|antinode| antinode.position)
-            .collect::<HashSet<_>>()
-            .len()
-            .to_string()
+        antinodes.iter().collect::<HashSet<_>>().len().to_string()
     }
 
     fn part2(&self, input: &str) -> String {
         let problem = Problem::parse_input(input.trim());
 
-        let antinodes = problem.find_antinodes_2();
+        let antinodes = problem.find_antinode_positions_2();
 
-        antinodes
-            .iter()
-            .map(|antinode| antinode.position)
-            .collect::<HashSet<_>>()
-            .len()
-            .to_string()
+        antinodes.iter().collect::<HashSet<_>>().len().to_string()
     }
 }
 
