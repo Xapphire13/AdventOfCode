@@ -206,6 +206,17 @@ fn score_trailheads(trails: &Vec<Vec<Coordinate>>) -> u32 {
         .sum::<usize>() as u32
 }
 
+fn trailhead_ratings(trails: &Vec<Vec<Coordinate>>) -> u32 {
+    let mut freq_map = HashMap::new();
+
+    trails.iter().for_each(|trail| {
+        let trailhead = trail[0];
+        *freq_map.entry(trailhead).or_insert(0) += 1;
+    });
+
+    freq_map.values().sum()
+}
+
 pub struct Day10;
 
 impl Solution for Day10 {
@@ -220,7 +231,12 @@ impl Solution for Day10 {
     }
 
     fn part2(&self, input: &str) -> String {
-        String::from("Not implemented")
+        let problem = Problem::parse_input(input);
+
+        let trails = problem.find_trails();
+        let ratings = trailhead_ratings(&trails);
+
+        ratings.to_string()
     }
 }
 
