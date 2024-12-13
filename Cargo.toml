@@ -12,6 +12,8 @@ name = "run_day"
 path = "src/run_day.rs"
 
 [dependencies]
+colored = "2.1.0"
 dedent = "0.1.1"
 num = "0.4.3"
+palette = "0.7.6"
 regex = "1.11.1"
