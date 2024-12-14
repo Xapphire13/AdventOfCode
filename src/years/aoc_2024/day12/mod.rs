@@ -4,6 +4,11 @@ use crate::aoc_solution::Solution;
 
 pub struct Day12;
 
+enum Fence {
+    Vertical(Coordinate),
+    Horizontal(Coordinate),
+}
+
 #[derive(PartialEq, Eq, Hash, Debug)]
 struct Coordinate {
     x: usize,
@@ -134,29 +139,82 @@ impl Problem {
         regions
     }
 
-    fn region_perimeter(&self, region: &Vec<&Plant>) -> u32 {
-        let mut result = 0;
+    fn region_perimeter(&self, region: &Vec<&Plant>) -> Vec<Fence> {
+        let mut result = vec![];
         let map_height = self.map.len();
         let map_width = self.map[0].len();
 
         for plant in region {
-            for position in [
-                plant.position.left(),
-                plant.position.right(map_width),
-                plant.position.up(),
-                plant.position.down(map_height),
-            ] {
-                if let Some(Coordinate { x, y }) = position {
-                    let neighbor = &self.map[y][x];
+            if let Some(Coordinate { x, y }) = plant.position.left() {
+                let neighbor = &self.map[y][x];
 
-                    // Perimeter along plant kind boundaries
-                    if neighbor.kind != plant.kind {
-                        result += 1;
-                    }
-                } else {
-                    // Map boundary counts as perimeter
-                    result += 1;
+                // Perimeter along plant kind boundaries
+                if neighbor.kind != plant.kind {
+                    result.push(Fence::Vertical(Coordinate {
+                        x: plant.position.x,
+                        y: plant.position.y,
+                    }));
                 }
+            } else {
+                // Map boundary counts as perimeter
+                result.push(Fence::Vertical(Coordinate {
+                    x: plant.position.x,
+                    y: plant.position.y,
+                }));
+            }
+
+            if let Some(Coordinate { x, y }) = plant.position.right(map_width) {
+                let neighbor = &self.map[y][x];
+
+                // Perimeter along plant kind boundaries
+                if neighbor.kind != plant.kind {
+                    result.push(Fence::Vertical(Coordinate {
+                        x: plant.position.x + 1,
+                        y: plant.position.y,
+                    }));
+                }
+            } else {
+                // Map boundary counts as perimeter
+                result.push(Fence::Vertical(Coordinate {
+                    x: plant.position.x + 1,
+                    y: plant.position.y,
+                }));
+            }
+
+            if let Some(Coordinate { x, y }) = plant.position.up() {
+                let neighbor = &self.map[y][x];
+
+                // Perimeter along plant kind boundaries
+                if neighbor.kind != plant.kind {
+                    result.push(Fence::Horizontal(Coordinate {
+                        x: plant.position.x,
+                        y: plant.position.y,
+                    }));
+                }
+            } else {
+                // Map boundary counts as perimeter
+                result.push(Fence::Horizontal(Coordinate {
+                    x: plant.position.x,
+                    y: plant.position.y,
+                }));
+            }
+
+            if let Some(Coordinate { x, y }) = plant.position.down(map_height) {
+                let neighbor = &self.map[y][x];
+
+                // Perimeter along plant kind boundaries
+                if neighbor.kind != plant.kind {
+                    result.push(Fence::Horizontal(Coordinate {
+                        x: plant.position.x,
+                        y: plant.position.y + 1,
+                    }));
+                }
+            } else {
+                // Map boundary counts as perimeter
+                result.push(Fence::Horizontal(Coordinate {
+                    x: plant.position.x,
+                    y: plant.position.y + 1,
+                }));
             }
         }
 
@@ -171,13 +229,64 @@ impl Solution for Day12 {
         problem
             .find_regions()
             .iter()
-            .map(|region| region.len() as u32 * problem.region_perimeter(region))
+            .map(|region| region.len() as u32 * problem.region_perimeter(region).len() as u32)
             .sum::<u32>()
             .to_string()
     }
 
     fn part2(&self, input: &str) -> String {
-        String::from("Not implemented")
+        let problem = Problem::parse_input(input);
+
+        problem
+            .find_regions()
+            .iter()
+            .map(|region| {
+                let fences = problem.region_perimeter(region);
+
+                let mut vertical_positions = fences
+                    .iter()
+                    .filter_map(|fence| match fence {
+                        Fence::Vertical(position) => Some(position),
+                        Fence::Horizontal(_) => None,
+                    })
+                    .collect::<Vec<_>>();
+                vertical_positions.sort_by(|a, b| match a.x.cmp(&b.x) {
+                    std::cmp::Ordering::Equal => a.y.cmp(&b.y),
+                    it => it,
+                });
+                let mut vertical_sections = if vertical_positions.len() > 0 { 1 } else { 0 };
+                for (i, &section) in vertical_positions.iter().enumerate().skip(1) {
+                    let prev_section = vertical_positions[i - 1];
+
+                    if prev_section.x != section.x || prev_section.y != section.y - 1 {
+                        vertical_sections += 1;
+                    }
+                }
+
+                let mut horizontal_positions = fences
+                    .iter()
+                    .filter_map(|fence| match fence {
+                        Fence::Vertical(_) => None,
+                        Fence::Horizontal(position) => Some(position),
+                    })
+                    .collect::<Vec<_>>();
+                horizontal_positions.sort_by(|a, b| match a.y.cmp(&b.y) {
+                    std::cmp::Ordering::Equal => a.x.cmp(&b.x),
+                    it => it,
+                });
+                let mut horizontal_sections = if horizontal_positions.len() > 0 { 1 } else { 0 };
+                for (i, &section) in horizontal_positions.iter().enumerate().skip(1) {
+                    let prev_section = horizontal_positions[i - 1];
+
+                    if prev_section.y != section.y || prev_section.x != section.x - 1 {
+                        horizontal_sections += 1;
+                    }
+                }
+
+                region.len() as u32 * (vertical_sections + horizontal_sections)
+            })
+            .sum::<u32>()
+            .to_string()
     }
 }
 
@@ -203,8 +312,26 @@ mod tests {
             MMMISSJEEE
             "
         );
-        let result = Day12.part1(input);
+        let result1 = Day12.part1(input);
+        let result2 = Day12.part2(input);
 
-        assert_eq!(result, "1930");
+        assert_eq!(result1, "1930");
+        assert_eq!(result2, "1206");
+    }
+
+    #[test]
+    fn test_day12_2() {
+        let input = dedent!(
+            "
+            EEEEE
+            EXXXX
+            EEEEE
+            EXXXX
+            EEEEE
+            "
+        );
+        let result2 = Day12.part2(input);
+
+        assert_eq!(result2, "236");
     }
 }
