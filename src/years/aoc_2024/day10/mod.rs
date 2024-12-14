@@ -1,7 +1,4 @@
-use std::{
-    borrow::BorrowMut,
-    collections::{HashMap, HashSet},
-};
+use std::collections::{HashMap, HashSet};
 
 use crate::aoc_solution::Solution;
 use colored::{Colorize, CustomColor};
