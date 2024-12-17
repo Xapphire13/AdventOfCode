@@ -2,7 +2,7 @@ use crate::aoc_solution::Solution;
 
 pub struct Day2;
 
-fn remove_at_index(items: &Vec<u32>, index: usize) -> Vec<u32> {
+fn remove_at_index(items: &[u32], index: usize) -> Vec<u32> {
     // Check if the index is valid
     if index >= items.len() {
         return items.to_vec();
@@ -30,7 +30,7 @@ fn parse_reports(input: &str) -> Vec<Vec<u32>> {
         .collect::<Vec<_>>()
 }
 
-fn test_report(report: &Vec<u32>) -> bool {
+fn test_report(report: &[u32]) -> bool {
     let mut prev_delta = report[1] as i32 - report[0] as i32;
     let mut prev = report[1];
 
@@ -63,8 +63,8 @@ impl Solution for Day2 {
 
         let result = reports
             .iter()
-            .map(test_report)
-            .filter(|&result| result == true)
+            .map(|report| test_report(report))
+            .filter(|&result| result)
             .count();
 
         result.to_string()
@@ -89,7 +89,7 @@ impl Solution for Day2 {
 
                 false
             })
-            .filter(|&result| result == true)
+            .filter(|&result| result)
             .count();
 
         result.to_string()

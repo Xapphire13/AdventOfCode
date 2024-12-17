@@ -105,7 +105,7 @@ impl Problem {
             row.iter()
                 .for_each(|cell| print!("{}", cell.to_string().custom_color(get_color(*cell))));
 
-            println!("");
+            println!();
         });
     }
 
@@ -178,7 +178,7 @@ impl Problem {
                 }
 
                 let position = (col, row);
-                find_trails_inner(vec![], position, &self, &mut trails);
+                find_trails_inner(vec![], position, self, &mut trails);
             }
         }
 
@@ -186,7 +186,7 @@ impl Problem {
     }
 }
 
-fn score_trailheads(trails: &Vec<Vec<Coordinate>>) -> u32 {
+fn score_trailheads(trails: &[Vec<Coordinate>]) -> u32 {
     let mut freq_map = HashMap::new();
 
     trails.iter().for_each(|trail| {
@@ -203,7 +203,7 @@ fn score_trailheads(trails: &Vec<Vec<Coordinate>>) -> u32 {
         .sum::<usize>() as u32
 }
 
-fn trailhead_ratings(trails: &Vec<Vec<Coordinate>>) -> u32 {
+fn trailhead_ratings(trails: &[Vec<Coordinate>]) -> u32 {
     let mut freq_map = HashMap::new();
 
     trails.iter().for_each(|trail| {

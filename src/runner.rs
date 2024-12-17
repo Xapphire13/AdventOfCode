@@ -99,7 +99,7 @@ impl Solution for Day{day} {{
             let mut new_lines: Vec<&str> = run_day_content.lines().collect();
             new_lines.insert(insertion_index, new_line.as_str());
 
-            fs::write(&run_day_path, new_lines.join("\n"))?;
+            fs::write(run_day_path, new_lines.join("\n"))?;
         }
     }
 
@@ -110,7 +110,7 @@ impl Solution for Day{day} {{
 fn run_day_solution(year: u32, day: u32) -> io::Result<()> {
     // Dynamically load the day's solution
     let mut child = Command::new("cargo")
-        .args(&[
+        .args([
             "run",
             "--bin",
             "run_day",
@@ -146,7 +146,7 @@ fn main() -> io::Result<()> {
                 return Ok(());
             }
             let year: u32 = match args[2].parse() {
-                Ok(n) if n >= 2015 && n <= 2099 => n,
+                Ok(n) if (2015..=2099).contains(&n) => n,
                 _ => {
                     eprintln!("Invalid year. Year must be between 2015 and 2099.");
                     return Ok(());
@@ -167,7 +167,7 @@ fn main() -> io::Result<()> {
                 return Ok(());
             }
             let year: u32 = match args[2].parse() {
-                Ok(n) if n >= 2015 && n <= 2099 => n,
+                Ok(n) if (2015..=2099).contains(&n) => n,
                 _ => {
                     eprintln!("Invalid year. Year must be between 2015 and 2099.");
                     return Ok(());

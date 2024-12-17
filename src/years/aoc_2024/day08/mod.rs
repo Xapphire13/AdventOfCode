@@ -29,10 +29,7 @@ struct Line {
 
 impl Line {
     fn slope(&self) -> Slope {
-        (
-            self.end.0 as i32 - self.start.0 as i32,
-            self.end.1 as i32 - self.start.1 as i32,
-        )
+        (self.end.0 - self.start.0, self.end.1 - self.start.1)
     }
 
     fn normalized_slope(&self) -> Slope {
@@ -56,14 +53,13 @@ struct Problem {
     map: Vec<Vec<Cell>>,
 }
 
-fn antenna_group_to_lines(antenna_positions: &Vec<Position>) -> Vec<Line> {
+fn antenna_group_to_lines(antenna_positions: &[Position]) -> Vec<Line> {
     let mut result = vec![];
 
     for i in 0..antenna_positions.len() {
         let start = antenna_positions[i];
 
-        for j in (i + 1)..antenna_positions.len() {
-            let end = antenna_positions[j];
+        for &end in antenna_positions.iter().skip(i + 1) {
             result.push(Line { start, end });
         }
     }

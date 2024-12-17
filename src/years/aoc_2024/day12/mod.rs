@@ -254,7 +254,7 @@ impl Solution for Day12 {
                     std::cmp::Ordering::Equal => a.y.cmp(&b.y),
                     it => it,
                 });
-                let mut vertical_sections = if vertical_positions.len() > 0 { 1 } else { 0 };
+                let mut vertical_sections = if !vertical_positions.is_empty() { 1 } else { 0 };
                 for (i, &section) in vertical_positions.iter().enumerate().skip(1) {
                     let prev_section = vertical_positions[i - 1];
 
@@ -274,7 +274,7 @@ impl Solution for Day12 {
                     std::cmp::Ordering::Equal => a.x.cmp(&b.x),
                     it => it,
                 });
-                let mut horizontal_sections = if horizontal_positions.len() > 0 { 1 } else { 0 };
+                let mut horizontal_sections = if !horizontal_positions.is_empty() { 1 } else { 0 };
                 for (i, &section) in horizontal_positions.iter().enumerate().skip(1) {
                     let prev_section = horizontal_positions[i - 1];
 

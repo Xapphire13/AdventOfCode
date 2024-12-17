@@ -17,7 +17,7 @@ fn main() {
     }
 
     let year: u32 = match args[1].parse() {
-        Ok(n) if n >= 2015 && n <= 2099 => n,
+        Ok(n) if (2015..=2099).contains(&n) => n,
         _ => {
             eprintln!("Invalid year. Must be between 2015 and 2099.");
             process::exit(1);

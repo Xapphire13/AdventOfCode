@@ -79,7 +79,7 @@ impl Problem {
 
             memo.insert(key, result);
 
-            return result;
+            result
         }
 
         let mut i = 0;

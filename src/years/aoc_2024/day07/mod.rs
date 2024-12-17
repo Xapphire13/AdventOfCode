@@ -18,7 +18,7 @@ impl Test {
                 return false;
             }
 
-            if next.len() == 0 {
+            if next.is_empty() {
                 return (acc + curr) == result || (acc * curr) == result;
             }
 
@@ -42,7 +42,7 @@ impl Test {
                 return false;
             }
 
-            if next.len() == 0 {
+            if next.is_empty() {
                 return (acc + curr) == result
                     || (acc * curr) == result
                     || concat_op(acc, curr) == result;

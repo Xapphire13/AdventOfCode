@@ -99,26 +99,36 @@ impl Map {
     /** Simulates one unit of time, allowing the guard to make their next move */
     fn simulate(&mut self) {
         if let Some((x, y, direction)) = self.guard_position {
-            let next_position;
-
-            match direction {
-                Direction::Up => next_position = if y > 0 { Some((x, y - 1)) } else { None },
+            let next_position = match direction {
+                Direction::Up => {
+                    if y > 0 {
+                        Some((x, y - 1))
+                    } else {
+                        None
+                    }
+                }
                 Direction::Down => {
-                    next_position = if y < self.row_len() - 1 {
+                    if y < self.row_len() - 1 {
                         Some((x, y + 1))
                     } else {
                         None
                     }
                 }
-                Direction::Left => next_position = if x > 0 { Some((x - 1, y)) } else { None },
+                Direction::Left => {
+                    if x > 0 {
+                        Some((x - 1, y))
+                    } else {
+                        None
+                    }
+                }
                 Direction::Right => {
-                    next_position = if x < self.col_len() - 1 {
+                    if x < self.col_len() - 1 {
                         Some((x + 1, y))
                     } else {
                         None
                     }
                 }
-            }
+            };
 
             if let Some((next_x, next_y)) = next_position {
                 let next_cell = self.get_cell(next_x, next_y);

@@ -22,9 +22,7 @@ impl PrintQueue {
                 let from: u32 = split.next().unwrap().parse().unwrap();
                 let to: u32 = split.next().unwrap().parse().unwrap();
 
-                if !ordering_rules.contains_key(&from) {
-                    ordering_rules.insert(from, vec![]);
-                }
+                ordering_rules.entry(from).or_default();
 
                 ordering_rules.get_mut(&from).unwrap().push(to);
             });
@@ -48,13 +46,10 @@ impl PrintQueue {
 
         for page in update {
             if !printed_pages.is_empty() {
-                match self.ordering_rules.get(&page) {
-                    Some(must_be_before) => {
-                        if must_be_before.iter().any(|it| printed_pages.contains(it)) {
-                            return false;
-                        }
+                if let Some(must_be_before) = self.ordering_rules.get(page) {
+                    if must_be_before.iter().any(|it| printed_pages.contains(it)) {
+                        return false;
                     }
-                    None => {}
                 }
             }
 
@@ -64,30 +59,27 @@ impl PrintQueue {
         true
     }
 
-    fn fix_update(&self, update: &Vec<u32>) -> Vec<u32> {
+    fn fix_update(&self, update: &[u32]) -> Vec<u32> {
         let mut printed_pages = HashSet::new();
-        let mut result = update.clone();
+        let mut result = update.to_owned();
 
         for i in 0..result.len() {
             let page = result[i];
 
             if !printed_pages.is_empty() {
-                match self.ordering_rules.get(&page) {
-                    Some(must_be_before_list) => {
-                        for must_be_before in must_be_before_list {
-                            if printed_pages.contains(must_be_before) {
-                                let error_index = i;
-                                if let Some(must_be_before_index) =
-                                    result.iter().position(|it| it == must_be_before)
-                                {
-                                    result.insert(must_be_before_index, page);
-                                    result.remove(error_index + 1);
-                                    break;
-                                }
+                if let Some(must_be_before_list) = self.ordering_rules.get(&page) {
+                    for must_be_before in must_be_before_list {
+                        if printed_pages.contains(must_be_before) {
+                            let error_index = i;
+                            if let Some(must_be_before_index) =
+                                result.iter().position(|it| it == must_be_before)
+                            {
+                                result.insert(must_be_before_index, page);
+                                result.remove(error_index + 1);
+                                break;
                             }
                         }
                     }
-                    None => {}
                 }
             }
 

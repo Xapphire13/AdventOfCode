@@ -73,11 +73,7 @@ impl Problem {
         let prize_regex = Regex::new(r"X=(\d+), Y=(\d+)").unwrap();
         let mut machines = vec![];
 
-        loop {
-            let button_a_line = match lines.next() {
-                Some(line) => line,
-                None => break,
-            };
+        while let Some(button_a_line) = lines.next() {
             let button_b_line = lines.next().unwrap();
             let prize_line = lines.next().unwrap();
             lines.next(); // Remove empty line
