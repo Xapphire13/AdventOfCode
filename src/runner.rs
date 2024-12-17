@@ -77,7 +77,7 @@ impl Solution for Day{day} {{
 
     let year_mod_content = fs::read_to_string(&year_mod_path)?;
     if !year_mod_content.contains(&format!("pub mod day{:02};", day)) {
-        let mut updated_content = year_mod_content;
+        let mut updated_content = year_mod_content.trim().to_string();
         updated_content.push_str(&format!("\npub mod day{:02};", day));
 
         fs::write(&year_mod_path, updated_content)?;
