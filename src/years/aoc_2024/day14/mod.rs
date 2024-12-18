@@ -136,6 +136,33 @@ impl Map {
         [q1, q2, q3, q4]
     }
 
+    fn is_xmas_tree(&self) -> bool {
+        let mut robot_map: HashMap<Coordinate, Vec<&Robot>> = HashMap::new();
+        self.robots.iter().for_each(|robot| {
+            robot_map
+                .entry(robot.position)
+                .and_modify(|e| e.push(robot))
+                .or_insert(vec![robot]);
+        });
+
+        for y in 0..self.height {
+            let mut consecutive_count = 0;
+            for x in 0..self.width {
+                if let Some(_) = robot_map.get(&Coordinate { x, y }) {
+                    consecutive_count += 1;
+                } else {
+                    consecutive_count = 0;
+                }
+
+                if consecutive_count > 10 {
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
+
     fn print(&self) {
         let mut robot_map: HashMap<Coordinate, Vec<&Robot>> = HashMap::new();
         self.robots.iter().for_each(|robot| {
@@ -177,7 +204,20 @@ impl Solution for Day14 {
     }
 
     fn part2(&self, input: &str) -> String {
-        String::from("Not implemented")
+        let mut map = Map::parse_input(101, 103, input);
+        let mut result = -1;
+
+        for i in 1..10000 {
+            map.simulate();
+
+            if map.is_xmas_tree() {
+                map.print();
+                result = i;
+                break;
+            }
+        }
+
+        result.to_string()
     }
 }
 
