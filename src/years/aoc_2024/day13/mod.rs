@@ -114,8 +114,8 @@ impl Solution for Day13 {
             .to_string()
     }
 
-    fn part2(&self, input: &str) -> String {
-        String::from("Not implemented")
+    fn part2(&self, _input: &str) -> String {
+        todo!()
     }
 }
 

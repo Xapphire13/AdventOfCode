@@ -68,13 +68,13 @@ impl Map {
             if new_x < 0 {
                 new_x = self.width as i32 + (new_x % self.width as i32);
             } else {
-                new_x = new_x % self.width as i32;
+                new_x %= self.width as i32;
             }
 
             if new_y < 0 {
                 new_y = self.height as i32 + (new_y % self.height as i32);
             } else {
-                new_y = new_y % self.height as i32;
+                new_y %= self.height as i32;
             }
 
             robot.position = Coordinate {
@@ -148,7 +148,7 @@ impl Map {
         for y in 0..self.height {
             let mut consecutive_count = 0;
             for x in 0..self.width {
-                if let Some(_) = robot_map.get(&Coordinate { x, y }) {
+                if robot_map.contains_key(&Coordinate { x, y }) {
                     consecutive_count += 1;
                 } else {
                     consecutive_count = 0;
