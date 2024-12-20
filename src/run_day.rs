@@ -1,12 +1,14 @@
 use std::env;
 use std::fs;
 use std::process;
+use std::time::Instant;
 
 // Import all year modules dynamically
 mod aoc_solution;
 mod years;
 
 use aoc_solution::Solution;
+use colored::Colorize;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -63,6 +65,7 @@ fn main() {
         (2024, 13) => run_day_solution(years::aoc_2024::day13::Day13, input),
         (2024, 14) => run_day_solution(years::aoc_2024::day14::Day14, input),
         (2024, 15) => run_day_solution(years::aoc_2024::day15::Day15, input),
+        (2024, 16) => run_day_solution(years::aoc_2024::day16::Day16, input),
         // Add more year and day solutions here
         _ => {
             eprintln!("Solution for Year {} Day {} not implemented", year, day_num);
@@ -72,6 +75,21 @@ fn main() {
 }
 
 fn run_day_solution<T: Solution>(day_solution: T, input: String) {
-    println!("Part 1: {}", day_solution.part1(&input));
-    println!("Part 2: {}", day_solution.part2(&input));
+    let start = Instant::now();
+    let result = day_solution.part1(&input);
+    let duration = start.elapsed();
+    println!(
+        "Part 1: {} {}",
+        result,
+        format!("({:?})", duration).yellow()
+    );
+
+    let start = Instant::now();
+    let result = day_solution.part2(&input);
+    let duration = start.elapsed();
+    println!(
+        "Part 2: {} {}",
+        result,
+        format!("({:?})", duration).yellow()
+    );
 }
