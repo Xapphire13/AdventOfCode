@@ -32,9 +32,9 @@ impl Instruction {
 }
 
 struct Cpu {
-    register_a: u32,
-    register_b: u32,
-    register_c: u32,
+    register_a: u64,
+    register_b: u64,
+    register_c: u64,
     instruction_pointer: u32,
     program: Vec<u8>,
 }
@@ -113,12 +113,12 @@ impl Cpu {
             Instruction::Adv(operand) => {
                 let operand = self.compute_combo_operand(operand);
                 let numerator = self.register_a;
-                let denominator = 2_u32.pow(operand);
+                let denominator = 2_u64.pow(operand as u32);
 
                 self.register_a = numerator / denominator;
             }
             Instruction::Bxl(operand) => {
-                self.register_b ^= operand as u32;
+                self.register_b ^= operand as u64;
             }
             Instruction::Bst(operand) => {
                 let operand = self.compute_combo_operand(operand);
@@ -140,14 +140,14 @@ impl Cpu {
             Instruction::Bdv(operand) => {
                 let operand = self.compute_combo_operand(operand);
                 let numerator = self.register_a;
-                let denominator = 2_u32.pow(operand);
+                let denominator = 2_u64.pow(operand as u32);
 
                 self.register_b = numerator / denominator;
             }
             Instruction::Cdv(operand) => {
                 let operand = self.compute_combo_operand(operand);
                 let numerator = self.register_a;
-                let denominator = 2_u32.pow(operand);
+                let denominator = 2_u64.pow(operand as u32);
 
                 self.register_c = numerator / denominator;
             }
@@ -159,9 +159,9 @@ impl Cpu {
         true
     }
 
-    fn compute_combo_operand(&self, operand: u8) -> u32 {
+    fn compute_combo_operand(&self, operand: u8) -> u64 {
         match operand {
-            x if (0..=3).contains(&x) => x as u32,
+            x if (0..=3).contains(&x) => x as u64,
             4 => self.register_a,
             5 => self.register_b,
             6 => self.register_c,
@@ -178,6 +178,36 @@ impl Solution for Day17 {
     }
 
     fn part2(&self, input: &str) -> String {
-        String::from("Not implemented")
+        let mut cpu = Cpu::parse_input(input);
+        let initial_register_b = cpu.register_b;
+        let initial_register_c = cpu.register_c;
+        let desired_output = cpu
+            .program
+            .iter()
+            .map(|value| value.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
+
+        let mut candidate = 258394902691840;
+
+        loop {
+            cpu.instruction_pointer = 0;
+            cpu.register_a = candidate;
+            cpu.register_b = initial_register_b;
+            cpu.register_c = initial_register_c;
+
+            let output = cpu.execute();
+
+            // println!("{} <-- finding", desired_output);
+            // println!("{} <--{}", output, candidate);
+
+            if output == desired_output {
+                break;
+            }
+
+            candidate += 1;
+        }
+
+        candidate.to_string()
     }
 }
