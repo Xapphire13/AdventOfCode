@@ -1,4 +1,4 @@
-use std::collections::{BinaryHeap, HashMap};
+use std::collections::{BinaryHeap, HashMap, HashSet};
 
 use crate::aoc_solution::Solution;
 
@@ -93,8 +93,9 @@ impl Maze {
         Maze { cells, start, end }
     }
 
-    fn solve(&self) -> u32 {
+    fn solve(&self) -> (u32, Vec<Vec<XYCoordinate>>) {
         struct Candidate {
+            path: Vec<XYCoordinate>,
             current_location: (XYCoordinate, Direction),
             current_score: u32,
         }
@@ -121,23 +122,31 @@ impl Maze {
 
         let mut min_costs = HashMap::from([((self.start, Direction::East), 0)]);
         let mut candidates = BinaryHeap::from([Candidate {
+            path: vec![self.start],
             current_location: (self.start, Direction::East),
             current_score: 0,
         }]);
 
-        let mut min_score = 0;
+        let mut min_score = u32::MAX;
+        let mut winners = vec![];
 
         while let Some(candidate) = candidates.pop() {
             let Candidate {
+                path,
                 current_location,
                 current_score,
             } = candidate;
+
+            if !winners.is_empty() && current_score > min_score {
+                continue;
+            }
 
             let (current_position, current_direction) = current_location;
 
             if current_position == self.end {
                 min_score = current_score;
-                break;
+                winners.push(path);
+                continue;
             }
 
             // Try moving forward
@@ -153,10 +162,13 @@ impl Maze {
                     let next_cost = current_score + MOVE_COST;
 
                     match min_costs.get(&next_location) {
-                        Some(cost) if *cost <= next_cost => {}
+                        Some(cost) if *cost < next_cost => {}
                         _ => {
                             min_costs.insert(next_location, next_cost);
+                            let mut new_path = path.clone();
+                            new_path.push(next_location.0);
                             candidates.push(Candidate {
+                                path: new_path,
                                 current_location: next_location,
                                 current_score: next_cost,
                             })
@@ -171,10 +183,13 @@ impl Maze {
                 let next_cost = current_score + TURN_COST;
 
                 match min_costs.get(&next_location) {
-                    Some(cost) if *cost <= next_cost => {}
+                    Some(cost) if *cost < next_cost => {}
                     _ => {
                         min_costs.insert(next_location, next_cost);
+                        let mut new_path = path.clone();
+                        new_path.push(next_location.0);
                         candidates.push(Candidate {
+                            path: new_path,
                             current_location: next_location,
                             current_score: next_cost,
                         })
@@ -188,10 +203,13 @@ impl Maze {
                 let next_cost = current_score + TURN_COST;
 
                 match min_costs.get(&next_location) {
-                    Some(cost) if *cost <= next_cost => {}
+                    Some(cost) if *cost < next_cost => {}
                     _ => {
                         min_costs.insert(next_location, next_cost);
+                        let mut new_path = path.clone();
+                        new_path.push(next_location.0);
                         candidates.push(Candidate {
+                            path: new_path,
                             current_location: next_location,
                             current_score: next_cost,
                         })
@@ -200,35 +218,83 @@ impl Maze {
             }
         }
 
-        min_score
-    }
-
-    fn print(&self, current_position: XYCoordinate) {
-        for (y, row) in self.cells.iter().enumerate() {
-            for (x, cell) in row.iter().enumerate() {
-                if current_position == XYCoordinate(x, y) {
-                    print!("X");
-                } else if self.end == XYCoordinate(x, y) {
-                    print!("E");
-                } else {
-                    print!("{}", if *cell == Tile::Empty { " " } else { "#" })
-                }
-            }
-
-            println!();
-        }
+        (min_score, winners)
     }
 }
 
 impl Solution for Day16 {
     fn part1(&self, input: &str) -> String {
         let maze = Maze::parse_input(input);
-        let result = maze.solve();
+        let (result, _) = maze.solve();
 
         result.to_string()
     }
 
     fn part2(&self, input: &str) -> String {
-        String::from("Not implemented")
+        let maze = Maze::parse_input(input);
+        let (_, paths) = maze.solve();
+
+        let mut coordinates = HashSet::new();
+
+        paths.iter().flatten().for_each(|coordinate| {
+            coordinates.insert(coordinate);
+        });
+
+        coordinates.len().to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use dedent::dedent;
+
+    use super::*;
+
+    impl Maze {
+        fn print(&self, current_position: XYCoordinate) {
+            for (y, row) in self.cells.iter().enumerate() {
+                for (x, cell) in row.iter().enumerate() {
+                    if current_position == XYCoordinate(x, y) {
+                        print!("X");
+                    } else if self.end == XYCoordinate(x, y) {
+                        print!("E");
+                    } else {
+                        print!("{}", if *cell == Tile::Empty { " " } else { "#" })
+                    }
+                }
+
+                println!();
+            }
+        }
+    }
+
+    #[test]
+    fn test_day16() {
+        let input = dedent!(
+            "
+            ###############
+            #.......#....E#
+            #.#.###.#.###.#
+            #.....#.#...#.#
+            #.###.#####.#.#
+            #.#.#.......#.#
+            #.#.#####.###.#
+            #...........#.#
+            ###.#.#####.#.#
+            #...#.....#.#.#
+            #.#.#.###.#.#.#
+            #.....#...#.#.#
+            #.###.#.#.#.#.#
+            #S..#.....#...#
+            ###############
+            "
+        );
+
+        let maze = Maze::parse_input(input);
+
+        maze.print(maze.start);
+        let (result, _) = maze.solve();
+
+        assert_eq!(result, 7036);
     }
 }
