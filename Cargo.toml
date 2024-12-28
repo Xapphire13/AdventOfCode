@@ -12,6 +12,7 @@ name = "run_day"
 path = "src/run_day.rs"
 
 [dependencies]
+binary-heap-plus = "0.5.0"
 colored = "2.1.0"
 dedent = "0.1.1"
 num = "0.4.3"
