@@ -42,50 +42,42 @@ impl TrieNode {
         root
     }
 
-    fn test(
-        &self,
-        input: &str,
-        root: &TrieNode,
-        solution_memo: &mut HashMap<String, bool>,
-    ) -> bool {
+    fn test(&self, input: &str, root: &TrieNode, solution_memo: &mut HashMap<String, u64>) -> u64 {
         match self {
             TrieNode::RootNode { children } => {
                 if solution_memo.contains_key(input) {
                     return *solution_memo.get(input).unwrap();
                 }
 
-                let result = {
-                    if let Some(next_char) = input.chars().next() {
-                        if let Some(child) = children.get(&next_char) {
-                            child.test(&input[1..], root, solution_memo)
-                        } else {
-                            false
-                        }
-                    } else {
-                        false
+                let mut result = 0;
+                if let Some(next_char) = input.chars().next() {
+                    if let Some(child) = children.get(&next_char) {
+                        result += child.test(&input[1..], root, solution_memo);
                     }
-                };
+                }
 
                 solution_memo.insert(input.to_string(), result);
 
                 return result;
             }
             TrieNode::ValueNode { children, .. } => {
+                let mut result = 0;
+
                 if let Some(next_char) = input.chars().next() {
                     if let Some(child) = children.get(&next_char) {
-                        if child.test(&input[1..], root, solution_memo) {
-                            return true;
-                        }
+                        result += child.test(&input[1..], root, solution_memo);
                     }
 
                     if children.contains_key(&'*') {
-                        return root.test(input, root, solution_memo);
+                        result += root.test(input, root, solution_memo);
                     }
+                } else if children.contains_key(&'*') {
+                    result += 1;
                 }
 
-                return children.contains_key(&'*');
+                return result;
             }
-            TrieNode::TerminalNode => false,
+            TrieNode::TerminalNode => 0,
         }
     }
 }
@@ -124,14 +116,23 @@ impl Solution for Day19 {
             .designs
             .iter()
             .filter(|design| {
-                return trie.test(design, &trie, &mut solution_memo);
+                return trie.test(design, &trie, &mut solution_memo) > 0;
             })
             .count()
             .to_string()
     }
 
     fn part2(&self, input: &str) -> String {
-        String::from("Not implemented")
+        let problem = Problem::parse_input(input);
+        let trie = TrieNode::from(&problem.towels);
+        let mut solution_memo = HashMap::new();
+
+        problem
+            .designs
+            .iter()
+            .map(|design| trie.test(design, &trie, &mut solution_memo))
+            .sum::<u64>()
+            .to_string()
     }
 }
 
@@ -147,12 +148,12 @@ mod tests {
             "
             b, c, a, ab, abc
 
-            abc
+            ab
             "
         );
 
-        let result = Day19.part1(input);
+        let result = Day19.part2(input);
 
-        assert_eq!(result, "1");
+        assert_eq!(result, "2");
     }
 }
