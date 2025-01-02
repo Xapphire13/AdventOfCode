@@ -10,7 +10,7 @@ enum Tile {
     Wall,
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 struct XYCoordindate(usize, usize);
 
 impl XYCoordindate {
@@ -168,7 +168,80 @@ impl Solution for Day20 {
     }
 
     fn part2(&self, input: &str) -> String {
-        String::from("Not implemented")
+        const MAX_CHEAT_SIZE: u8 = 20;
+        let problem = Problem::parse_input(input);
+        let path_without_cheating = problem.race();
+        let mut result = HashSet::new();
+        let mut location_to_time = HashMap::new();
+
+        path_without_cheating
+            .iter()
+            .enumerate()
+            .for_each(|(i, position)| {
+                location_to_time.insert(position, i);
+            });
+
+        for position in path_without_cheating.iter() {
+            let cheat_start_time = *location_to_time.get(position).unwrap();
+
+            let mut end_positions = vec![];
+            let mut up_position = *position;
+            let mut down_position = *position;
+
+            for i in 0..=MAX_CHEAT_SIZE {
+                end_positions.push((up_position, i));
+                end_positions.push((down_position, i));
+
+                // Left
+                let mut current_up_pos = up_position;
+                for j in 1..=(MAX_CHEAT_SIZE - i) {
+                    current_up_pos = current_up_pos.left();
+                    end_positions.push((current_up_pos, i + j));
+                }
+                let mut current_down_pos = down_position;
+                for j in 1..=(MAX_CHEAT_SIZE - i) {
+                    current_down_pos = current_down_pos.left();
+                    end_positions.push((current_down_pos, i + j));
+                }
+
+                // Right
+                let mut current_up_pos = up_position;
+                for j in 1..=(MAX_CHEAT_SIZE - i) {
+                    current_up_pos = current_up_pos.right();
+                    end_positions.push((current_up_pos, i + j));
+                }
+                current_down_pos = down_position;
+                for j in 1..=(MAX_CHEAT_SIZE - i) {
+                    current_down_pos = current_down_pos.right();
+                    end_positions.push((current_down_pos, i + j));
+                }
+
+                up_position = up_position.up();
+                down_position = down_position.down();
+            }
+
+            let end_positions = end_positions
+                .iter()
+                .filter_map(|(position, duration)| match problem.get(*position) {
+                    Some(Tile::Empty) => Some((*position, *duration)),
+                    _ => None,
+                })
+                .collect::<Vec<_>>();
+
+            for (cheat_end_pos, duration) in end_positions {
+                if let Some(cheat_end_time) = location_to_time.get(&cheat_end_pos) {
+                    let time_savings = cheat_end_time
+                        .saturating_sub(cheat_start_time)
+                        .saturating_sub(duration as usize);
+
+                    if time_savings >= 100 {
+                        result.insert((cheat_start_time, cheat_end_pos, time_savings));
+                    }
+                }
+            }
+        }
+
+        result.len().to_string()
     }
 }
 
@@ -199,8 +272,8 @@ mod tests {
             ###############
             "
         );
-        let result = Day20.part1(input);
+        let result = Day20.part2(input);
 
-        assert_eq!(result, "64");
+        assert_eq!(result, "285");
     }
 }
