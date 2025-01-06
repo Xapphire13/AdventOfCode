@@ -1,8 +1,16 @@
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap, io::stdout, rc::Rc, thread::sleep, time::Duration};
+
+use colored::Colorize;
+use crossterm::{
+    execute,
+    terminal::{self, ClearType},
+};
 
 use crate::aoc_solution::Solution;
 
 pub struct Day21;
+
+const SIMULATE: bool = false;
 
 #[derive(Clone, PartialEq, Eq, Hash, Debug)]
 enum Key {
@@ -37,6 +45,10 @@ impl Key {
             '8' => Key::Eight,
             '9' => Key::Nine,
             'A' => Key::Activate,
+            '<' => Key::Left,
+            '>' => Key::Right,
+            '^' => Key::Up,
+            'v' => Key::Down,
             _ => panic!("Invalid key {}", char),
         }
     }
@@ -68,6 +80,22 @@ struct XYCoordinate(u8, u8);
 impl XYCoordinate {
     fn sub(&self, rhs: &XYCoordinate) -> (i8, i8) {
         (self.0 as i8 - rhs.0 as i8, self.1 as i8 - rhs.1 as i8)
+    }
+
+    fn left(&self) -> XYCoordinate {
+        XYCoordinate(self.0.saturating_sub(1), self.1)
+    }
+
+    fn right(&self) -> XYCoordinate {
+        XYCoordinate(self.0 + 1, self.1)
+    }
+
+    fn up(&self) -> XYCoordinate {
+        XYCoordinate(self.0, self.1.saturating_sub(1))
+    }
+
+    fn down(&self) -> XYCoordinate {
+        XYCoordinate(self.0, self.1 + 1)
     }
 }
 
@@ -111,16 +139,16 @@ impl Keypad {
                 }
             };
 
-            // If moving vertically first would cause entering the blank space,
-            // then move horizontally first
-            if current_position.0 == self.blank_space.0
-                && (current_position.1 as i8 + dy) as u8 == self.blank_space.1
+            // If moving horizontall first would cause entering the blank space,
+            // then move vertically first
+            if current_position.1 == self.blank_space.1
+                && (current_position.0 as i8 + dx) as u8 == self.blank_space.0
             {
-                move_horizontally(&mut result);
                 move_vertically(&mut result);
+                move_horizontally(&mut result);
             } else {
-                move_vertically(&mut result);
                 move_horizontally(&mut result);
+                move_vertically(&mut result);
             }
 
             result.push(Key::Activate);
@@ -129,15 +157,85 @@ impl Keypad {
 
         result
     }
+
+    fn format(&self, hover_position: XYCoordinate, last_key_pressed: Option<Key>) -> Vec<String> {
+        let mut coord_to_key = HashMap::new();
+        let mut max_x = 0;
+        let mut max_y = 0;
+
+        for (key, position) in self.buttons.iter() {
+            coord_to_key.insert(position.clone(), key.clone());
+            max_x = max_x.max(position.0);
+            max_y = max_y.max(position.1);
+        }
+
+        let mut formatted_rows = vec![];
+
+        // Example
+        //     +---+---+
+        //     | ^ | A |
+        // +---+---+---+
+        // | < | v | > |
+        // +---+---+---+
+
+        for y in 0..=max_y {
+            let mut border = String::new();
+            let mut value = String::new();
+            for x in 0..=max_x {
+                match coord_to_key.get(&XYCoordinate(x, y)) {
+                    Some(key) => {
+                        let mut key_value = key.to_string().normal();
+
+                        if hover_position == XYCoordinate(x, y) {
+                            key_value = key_value.bold().yellow();
+
+                            if last_key_pressed.clone().is_some_and(|it| it == *key) {
+                                key_value = key_value.on_red();
+                            }
+                        }
+
+                        border.push_str("+---");
+                        value.push_str(format!("| {} ", key_value).as_str());
+                    }
+                    None => {
+                        border.push_str(if y > 0 { "+---" } else { "    " });
+
+                        if hover_position == XYCoordinate(x, y) {
+                            let red = "  ".on_yellow();
+                            value.push_str(format!(" {} ", red).as_str());
+                        } else {
+                            value.push_str("    ");
+                        }
+                    }
+                }
+            }
+            border.push('+');
+            value.push('|');
+
+            formatted_rows.push(border);
+            formatted_rows.push(value);
+        }
+        let mut bottom_border = String::new();
+        for x in 0..=max_x {
+            match coord_to_key.get(&XYCoordinate(x, max_y)) {
+                Some(_) => {
+                    bottom_border.push_str("+---");
+                }
+                None => {
+                    bottom_border.push_str("    ");
+                }
+            }
+        }
+        bottom_border.push('+');
+        formatted_rows.push(bottom_border);
+
+        formatted_rows
+    }
 }
 
 struct Problem {
     keypads: Vec<Keypad>,
     codes: Vec<Vec<Key>>,
-}
-
-fn code_to_string(code: &Vec<Key>) -> String {
-    code.iter().map(Key::to_string).collect::<Vec<_>>().join("")
 }
 
 impl Problem {
@@ -201,6 +299,156 @@ impl Problem {
     }
 }
 
+struct RobotArm {
+    keypad: Keypad,
+    position: XYCoordinate,
+    last_key_pressed: Option<Key>,
+    on_key_pressed: Box<dyn FnMut(Key)>,
+}
+
+impl RobotArm {
+    fn input(&mut self, key: Key) {
+        match key {
+            Key::Left => {
+                self.position.0 -= 1;
+            }
+            Key::Right => {
+                self.position.0 += 1;
+            }
+            Key::Up => {
+                self.position.1 -= 1;
+            }
+            Key::Down => {
+                self.position.1 += 1;
+            }
+            Key::Activate => {
+                let key = self
+                    .keypad
+                    .buttons
+                    .iter()
+                    .find_map(|(key, position)| {
+                        if *position == self.position {
+                            Some(key.clone())
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap();
+
+                self.last_key_pressed = Some(key.clone());
+                (self.on_key_pressed)(key);
+            }
+            _ => {}
+        }
+    }
+}
+
+struct Simulation {
+    robot_arms: Vec<Rc<RefCell<RobotArm>>>,
+}
+
+impl Simulation {
+    fn new(problem: &Problem) -> Simulation {
+        let numeric_pad = Rc::new(RefCell::new(RobotArm {
+            keypad: problem.keypads[0].clone(),
+            position: problem.keypads[0]
+                .buttons
+                .get(&Key::Activate)
+                .cloned()
+                .unwrap(),
+            last_key_pressed: None,
+            on_key_pressed: Box::new(|key| println!("Digit entered! {}", key.to_string())),
+        }));
+
+        let directional_pad_1 = Rc::new(RefCell::new(RobotArm {
+            keypad: problem.keypads[1].clone(),
+            position: problem.keypads[1]
+                .buttons
+                .get(&Key::Activate)
+                .cloned()
+                .unwrap(),
+            last_key_pressed: None,
+            on_key_pressed: Box::new(|_| {}), // Placeholder
+        }));
+
+        let directional_pad_2 = Rc::new(RefCell::new(RobotArm {
+            keypad: problem.keypads[2].clone(),
+            position: problem.keypads[2]
+                .buttons
+                .get(&Key::Activate)
+                .cloned()
+                .unwrap(),
+            last_key_pressed: None,
+            on_key_pressed: Box::new(|_| {}), // Placeholder
+        }));
+
+        let numeric_pad_ptr = numeric_pad.clone();
+        let directional_pad_1_ptr = directional_pad_1.clone();
+
+        directional_pad_1.borrow_mut().on_key_pressed = Box::new(move |key| {
+            numeric_pad_ptr.borrow_mut().input(key);
+        });
+
+        directional_pad_2.borrow_mut().on_key_pressed = Box::new(move |key| {
+            directional_pad_1_ptr.borrow_mut().input(key);
+        });
+
+        Simulation {
+            robot_arms: vec![numeric_pad, directional_pad_1, directional_pad_2],
+        }
+    }
+
+    fn input(&mut self, key: Key) {
+        let robot_arm = self.robot_arms.last().unwrap();
+        robot_arm.borrow_mut().input(key);
+    }
+
+    fn print(&self) {
+        let mut num_rows = 0;
+        let formatted_keypads = self
+            .robot_arms
+            .iter()
+            .rev()
+            .map(|robot_arm| {
+                let robot_arm = robot_arm.borrow();
+                let formatted = robot_arm
+                    .keypad
+                    .format(robot_arm.position, robot_arm.last_key_pressed.clone());
+
+                num_rows = num_rows.max(formatted.len());
+
+                formatted
+            })
+            .collect::<Vec<_>>();
+
+        let fallback = "             ".to_string();
+
+        for row in 0..num_rows {
+            for formatted_keypad in formatted_keypads.iter() {
+                let formatted_row = formatted_keypad.get(row).unwrap_or(&fallback);
+                print!("{}    ", formatted_row);
+            }
+            println!()
+        }
+        println!();
+    }
+
+    fn simulate(&mut self, input_sequence: &Vec<Key>) {
+        let mut io = stdout();
+
+        execute!(io, terminal::EnterAlternateScreen).expect("Failed to enter alt screen");
+
+        for key in input_sequence {
+            execute!(io, terminal::Clear(ClearType::All)).expect("Failed to clear screen");
+            self.print();
+            self.input(key.clone());
+            sleep(Duration::from_millis(500));
+        }
+
+        execute!(io, terminal::LeaveAlternateScreen).expect("Failed to leave alt screen");
+    }
+}
+
 impl Solution for Day21 {
     fn part1(&self, input: &str) -> String {
         let problem = Problem::parse_input(input);
@@ -223,12 +471,24 @@ impl Solution for Day21 {
             let complexity_score = numeric_part as usize * input_sequence.len();
             result += complexity_score;
 
+            let seq = input_sequence
+                .iter()
+                .map(|key| key.to_string())
+                .collect::<Vec<_>>()
+                .join("");
+            println!("{}", seq);
             println!(
                 "{} * {}, Complexity -> {}",
                 input_sequence.len(),
                 numeric_part,
                 complexity_score
             );
+
+            if SIMULATE {
+                println!("Simulating");
+                let mut simulation = Simulation::new(&problem);
+                simulation.simulate(&input_sequence);
+            }
         }
 
         result.to_string()
