@@ -81,22 +81,6 @@ impl XYCoordinate {
     fn sub(&self, rhs: &XYCoordinate) -> (i8, i8) {
         (self.0 as i8 - rhs.0 as i8, self.1 as i8 - rhs.1 as i8)
     }
-
-    fn left(&self) -> XYCoordinate {
-        XYCoordinate(self.0.saturating_sub(1), self.1)
-    }
-
-    fn right(&self) -> XYCoordinate {
-        XYCoordinate(self.0 + 1, self.1)
-    }
-
-    fn up(&self) -> XYCoordinate {
-        XYCoordinate(self.0, self.1.saturating_sub(1))
-    }
-
-    fn down(&self) -> XYCoordinate {
-        XYCoordinate(self.0, self.1 + 1)
-    }
 }
 
 #[derive(Clone)]
@@ -139,16 +123,48 @@ impl Keypad {
                 }
             };
 
-            // If moving horizontall first would cause entering the blank space,
-            // then move vertically first
-            if current_position.1 == self.blank_space.1
-                && (current_position.0 as i8 + dx) as u8 == self.blank_space.0
-            {
-                move_vertically(&mut result);
-                move_horizontally(&mut result);
-            } else {
-                move_horizontally(&mut result);
-                move_vertically(&mut result);
+            let need_to_move_right = dx > 0;
+            let need_to_move_left = dx < 0;
+            let need_to_move_up = dy < 0;
+            let need_to_move_down = dy > 0;
+            let horizontal_clash = current_position.1 == self.blank_space.1
+                && (current_position.0 as i8 + dx) as u8 == self.blank_space.0;
+            let vertical_clash = current_position.0 == self.blank_space.0
+                && (current_position.1 as i8 + dy) as u8 == self.blank_space.1;
+
+            // Order of precedence <, ^, v, >
+            if need_to_move_left {
+                if horizontal_clash {
+                    move_vertically(&mut result);
+                    move_horizontally(&mut result);
+                } else {
+                    move_horizontally(&mut result);
+                    move_vertically(&mut result);
+                }
+            } else if need_to_move_up {
+                if vertical_clash {
+                    move_horizontally(&mut result);
+                    move_vertically(&mut result);
+                } else {
+                    move_vertically(&mut result);
+                    move_horizontally(&mut result);
+                }
+            } else if need_to_move_down {
+                if vertical_clash {
+                    move_horizontally(&mut result);
+                    move_vertically(&mut result);
+                } else {
+                    move_vertically(&mut result);
+                    move_horizontally(&mut result);
+                }
+            } else if need_to_move_right {
+                if horizontal_clash {
+                    move_vertically(&mut result);
+                    move_horizontally(&mut result);
+                } else {
+                    move_horizontally(&mut result);
+                    move_vertically(&mut result);
+                }
             }
 
             result.push(Key::Activate);
@@ -463,10 +479,13 @@ impl Solution for Day21 {
                 .join("")
                 .parse::<u16>()
                 .unwrap();
-            let input_sequence = problem
-                .keypads
-                .iter()
-                .fold(code, |acc, keypad| keypad.generate_input_sequence(acc));
+            let input_sequence = problem.keypads.iter().fold(code, |acc, keypad| {
+                println!(
+                    "{}",
+                    acc.iter().map(Key::to_string).collect::<Vec<_>>().join("")
+                );
+                keypad.generate_input_sequence(acc)
+            });
 
             let complexity_score = numeric_part as usize * input_sequence.len();
             result += complexity_score;
