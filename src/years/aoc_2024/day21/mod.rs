@@ -255,7 +255,7 @@ struct Problem {
 }
 
 impl Problem {
-    fn parse_input(input: &str) -> Problem {
+    fn parse_input(input: &str, number_of_directional_pads: u8) -> Problem {
         let codes = input
             .trim()
             .lines()
@@ -304,14 +304,13 @@ impl Problem {
             ],
         );
 
-        Problem {
-            keypads: vec![
-                numeric_keypad,
-                directional_keypad.clone(),
-                directional_keypad,
-            ],
-            codes,
+        let mut keypads = vec![numeric_keypad];
+
+        for _ in 0..number_of_directional_pads {
+            keypads.push(directional_keypad.clone());
         }
+
+        Problem { keypads, codes }
     }
 }
 
@@ -467,7 +466,7 @@ impl Simulation {
 
 impl Solution for Day21 {
     fn part1(&self, input: &str) -> String {
-        let problem = Problem::parse_input(input);
+        let problem = Problem::parse_input(input, 2);
         let mut result = 0;
 
         for code in problem.codes.clone() {
@@ -479,29 +478,13 @@ impl Solution for Day21 {
                 .join("")
                 .parse::<u16>()
                 .unwrap();
-            let input_sequence = problem.keypads.iter().fold(code, |acc, keypad| {
-                println!(
-                    "{}",
-                    acc.iter().map(Key::to_string).collect::<Vec<_>>().join("")
-                );
-                keypad.generate_input_sequence(acc)
-            });
+            let input_sequence = problem
+                .keypads
+                .iter()
+                .fold(code, |acc, keypad| keypad.generate_input_sequence(acc));
 
             let complexity_score = numeric_part as usize * input_sequence.len();
             result += complexity_score;
-
-            let seq = input_sequence
-                .iter()
-                .map(|key| key.to_string())
-                .collect::<Vec<_>>()
-                .join("");
-            println!("{}", seq);
-            println!(
-                "{} * {}, Complexity -> {}",
-                input_sequence.len(),
-                numeric_part,
-                complexity_score
-            );
 
             if SIMULATE {
                 println!("Simulating");
@@ -514,7 +497,28 @@ impl Solution for Day21 {
     }
 
     fn part2(&self, input: &str) -> String {
-        String::from("Not implemented")
+        let problem = Problem::parse_input(input, 10); // Should be 25
+        let mut result = 0;
+
+        for code in problem.codes.clone() {
+            let numeric_part = code
+                .iter()
+                .take(3)
+                .map(Key::to_string)
+                .collect::<Vec<_>>()
+                .join("")
+                .parse::<u16>()
+                .unwrap();
+            let input_sequence = problem
+                .keypads
+                .iter()
+                .fold(code, |acc, keypad| keypad.generate_input_sequence(acc));
+
+            let complexity_score = numeric_part as usize * input_sequence.len();
+            result += complexity_score;
+        }
+
+        result.to_string()
     }
 }
 
@@ -538,5 +542,50 @@ mod tests {
         let result = Day21.part1(input);
 
         assert_eq!(result, "126384");
+    }
+
+    #[test]
+    fn test_day21_part2() {
+        let directional_keypad = Keypad::from(
+            XYCoordinate(0, 0),
+            vec![
+                (Key::Up, XYCoordinate(1, 0)),
+                (Key::Activate, XYCoordinate(2, 0)),
+                (Key::Left, XYCoordinate(0, 1)),
+                (Key::Down, XYCoordinate(1, 1)),
+                (Key::Right, XYCoordinate(2, 1)),
+            ],
+        );
+
+        let numeric_keypad = Keypad::from(
+            XYCoordinate(0, 3),
+            vec![
+                (Key::Seven, XYCoordinate(0, 0)),
+                (Key::Eight, XYCoordinate(1, 0)),
+                (Key::Nine, XYCoordinate(2, 0)),
+                (Key::Four, XYCoordinate(0, 1)),
+                (Key::Five, XYCoordinate(1, 1)),
+                (Key::Six, XYCoordinate(2, 1)),
+                (Key::One, XYCoordinate(0, 2)),
+                (Key::Two, XYCoordinate(1, 2)),
+                (Key::Three, XYCoordinate(2, 2)),
+                (Key::Zero, XYCoordinate(1, 3)),
+                (Key::Activate, XYCoordinate(2, 3)),
+            ],
+        );
+
+        let mut keypads = vec![];
+        keypads.extend((0..8).map(|_| directional_keypad.clone()));
+
+        let problem = Problem {
+            keypads,
+            codes: vec![],
+        };
+
+        problem.keypads.iter().fold(vec![Key::Down], |acc, keypad| {
+            let code_str = acc.iter().map(Key::to_string).collect::<Vec<_>>().join("");
+            println!("{} {}", code_str.len(), code_str);
+            keypad.generate_input_sequence(acc)
+        });
     }
 }
