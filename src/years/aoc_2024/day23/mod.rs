@@ -76,6 +76,12 @@ struct NodeGroup {
     node_ids: Vec<NodeId>,
 }
 
+impl NodeGroup {
+    fn size(&self) -> usize {
+        self.node_ids.len()
+    }
+}
+
 impl Hash for NodeGroup {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.node_ids.iter().sorted().join(":").hash(state);
@@ -125,17 +131,13 @@ impl Graph {
 
         Graph { nodes }
     }
-}
 
-impl Solution for Day23 {
-    fn part1(&self, input: &str) -> String {
-        let graph = Graph::parse_input(input);
-
-        let groups: HashSet<NodeGroup> = graph
+    fn find_groups(&self) -> Vec<NodeGroup> {
+        let groups: HashSet<NodeGroup> = self
             .nodes
             .values()
             .filter_map(|node| {
-                let result = node.find(&graph, vec![], 3, node.id.as_str());
+                let result = node.find(self, vec![], 3, node.id.as_str());
 
                 if result.is_empty() {
                     None
@@ -144,23 +146,31 @@ impl Solution for Day23 {
                 }
             })
             .flatten()
-            .filter_map(|group| {
-                if group.len() == 3 {
-                    Some(NodeGroup {
-                        node_ids: group.iter().cloned().collect(),
-                    })
-                } else {
-                    None
-                }
-            })
-            .filter(|group| {
-                group
-                    .node_ids
-                    .iter()
-                    .find(|group_id| group_id.starts_with("t"))
-                    .is_some()
+            .map(|group| NodeGroup {
+                node_ids: group.iter().cloned().collect(),
             })
             .collect();
+
+        groups.into_iter().collect()
+    }
+}
+
+impl Solution for Day23 {
+    fn part1(&self, input: &str) -> String {
+        let graph = Graph::parse_input(input);
+
+        let groups = graph
+            .find_groups()
+            .into_iter()
+            .filter(|group| {
+                group.size() == 3
+                    && group
+                        .node_ids
+                        .iter()
+                        .find(|group_id| group_id.starts_with("t"))
+                        .is_some()
+            })
+            .collect_vec();
 
         groups.len().to_string()
     }
@@ -214,11 +224,20 @@ mod tests {
         let input = dedent!(
             "
             aa-bb
+            bb-cc
             cc-aa
             "
         );
-        let result = Day23.part1(input);
+        let graph = Graph::parse_input(input);
+        let groups = graph
+            .find_groups()
+            .into_iter()
+            .filter(|group| group.size() == 3)
+            .collect_vec();
 
-        assert_eq!(result, "0");
+        println!("{:?}", groups);
+
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].node_ids.len(), 3)
     }
 }
