@@ -37,34 +37,34 @@ impl Node {
         &self,
         graph: &Graph,
         path: Vec<NodeId>,
-        max_hops: u8,
+        max_hops: usize,
         target_id: &str,
     ) -> Vec<Vec<NodeId>> {
+        if path.len() >= 1 && self.id == target_id {
+            let mut new_path = path.clone();
+            if !new_path.contains(&self.id) {
+                new_path.push(self.id.clone());
+            }
+            return vec![new_path];
+        }
+
         if max_hops == 0 {
             return vec![];
         }
 
+        if path.contains(&self.id) {
+            return vec![];
+        }
+
+        let mut new_path = path.clone();
+        new_path.push(self.id.clone());
+
         let mut results = vec![];
 
         for neighbor_id in self.neighbors.iter() {
-            if path.contains(&neighbor_id) {
-                continue;
-            }
-
-            let mut new_path = path.clone();
-            new_path.push(neighbor_id.clone());
-
-            if neighbor_id == target_id {
-                results.push(new_path);
-                continue;
-            }
-
             let neighbor = graph.nodes.get(neighbor_id).unwrap();
 
-            let f = neighbor.find(graph, new_path, max_hops - 1, target_id);
-            if !f.is_empty() {
-                results.extend(f);
-            }
+            results.extend(neighbor.find(graph, new_path.clone(), max_hops - 1, target_id));
         }
 
         results
@@ -145,8 +145,10 @@ impl Solution for Day23 {
             })
             .flatten()
             .filter_map(|group| {
-                if group.len() >= 3 {
-                    Some(NodeGroup { node_ids: group })
+                if group.len() == 3 {
+                    Some(NodeGroup {
+                        node_ids: group.iter().cloned().collect(),
+                    })
                 } else {
                     None
                 }
@@ -164,7 +166,40 @@ impl Solution for Day23 {
     }
 
     fn part2(&self, input: &str) -> String {
-        String::from("Not implemented")
+        let graph = Graph::parse_input(input);
+
+        let groups: HashSet<NodeGroup> = graph
+            .nodes
+            .values()
+            .enumerate()
+            .filter_map(|(i, node)| {
+                println!(
+                    "{}/{} - {} neighbors",
+                    i + 1,
+                    graph.nodes.len(),
+                    node.neighbors.len()
+                );
+                let result = node.find(&graph, vec![], node.neighbors.len() + 1, node.id.as_str());
+
+                if result.is_empty() {
+                    None
+                } else {
+                    Some(result)
+                }
+            })
+            .flatten()
+            .filter_map(|group| {
+                if group.len() >= 3 {
+                    Some(NodeGroup {
+                        node_ids: group.iter().cloned().collect(),
+                    })
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        groups.len().to_string()
     }
 }
 
@@ -179,10 +214,11 @@ mod tests {
         let input = dedent!(
             "
             aa-bb
-            bb-cc
             cc-aa
             "
         );
         let result = Day23.part1(input);
+
+        assert_eq!(result, "0");
     }
 }
