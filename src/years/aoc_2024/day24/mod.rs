@@ -1,4 +1,7 @@
-use std::collections::{HashMap, VecDeque};
+use std::{
+    collections::{HashMap, VecDeque},
+    ops::{BitAnd, BitOr, BitXor},
+};
 
 use itertools::Itertools;
 use regex::Regex;
@@ -7,10 +10,46 @@ use crate::aoc_solution::Solution;
 
 pub struct Day24;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 enum WireState {
     On,
     Off,
+}
+
+impl BitAnd for WireState {
+    type Output = Self;
+
+    fn bitand(self, rhs: Self) -> Self::Output {
+        if self == WireState::On && rhs == WireState::On {
+            WireState::On
+        } else {
+            WireState::Off
+        }
+    }
+}
+
+impl BitOr for WireState {
+    type Output = WireState;
+
+    fn bitor(self, rhs: Self) -> Self::Output {
+        if self == WireState::On || rhs == WireState::On {
+            WireState::On
+        } else {
+            WireState::Off
+        }
+    }
+}
+
+impl BitXor for WireState {
+    type Output = WireState;
+
+    fn bitxor(self, rhs: Self) -> Self::Output {
+        if self != rhs && (self | rhs) == WireState::On {
+            WireState::On
+        } else {
+            WireState::Off
+        }
+    }
 }
 
 impl WireState {
@@ -19,6 +58,13 @@ impl WireState {
             "1" => WireState::On,
             "0" => WireState::Off,
             unknown => panic!("Unknown state: {}", unknown),
+        }
+    }
+
+    fn to_int(&self) -> u64 {
+        match self {
+            WireState::On => 1,
+            WireState::Off => 0,
         }
     }
 }
@@ -52,8 +98,18 @@ struct LogicGate {
     output_index: usize,
 }
 
+impl LogicGate {
+    fn compute(&self, input_1: &WireState, input_2: &WireState) -> WireState {
+        match self.kind {
+            GateType::And => input_1.clone() & input_2.clone(),
+            GateType::Or => input_1.clone() | input_2.clone(),
+            GateType::Xor => input_1.clone() ^ input_2.clone(),
+        }
+    }
+}
+
 struct Circuit {
-    initial_wire_states: HashMap<String, WireState>,
+    initial_wire_states: HashMap<usize, WireState>,
     wires: Vec<Wire>,
     logic_gates: Vec<LogicGate>,
 }
@@ -90,7 +146,7 @@ impl Circuit {
 
             circuit
                 .initial_wire_states
-                .insert(wire_name.to_string(), WireState::from_str(initial_state));
+                .insert(circuit.wires.len(), WireState::from_str(initial_state));
             circuit.wires.push(wire);
         }
 
@@ -136,9 +192,30 @@ impl Circuit {
     }
 
     fn simulate(&mut self) {
-        let mut update_queue = VecDeque::from_iter(self.initial_wire_states.iter());
+        let mut update_queue: VecDeque<(usize, WireState)> = self
+            .initial_wire_states
+            .iter()
+            .map(|update| (update.0.clone(), update.1.clone()))
+            .collect();
 
-        while let Some(update) = update_queue.pop_front() {}
+        while let Some((wire_index, state)) = update_queue.pop_front() {
+            let dependency_indices = {
+                let wire = &mut self.wires[wire_index];
+                wire.state = Some(state);
+                wire.dependency_indices.iter().cloned().collect_vec()
+            };
+
+            for gate_index in dependency_indices {
+                let gate = &self.logic_gates[gate_index];
+                let wire_1 = &self.wires[gate.inputs_indices[0]];
+                let wire_2 = &self.wires[gate.inputs_indices[1]];
+
+                if let (Some(input_1), Some(input_2)) = (&wire_1.state, &wire_2.state) {
+                    let result = gate.compute(input_1, input_2);
+                    update_queue.push_back((gate.output_index, result));
+                }
+            }
+        }
     }
 }
 
@@ -147,16 +224,16 @@ impl Solution for Day24 {
         let mut circuit = Circuit::parse_input(input);
 
         circuit.simulate();
-        circuit
+        let result = circuit
             .wires
             .iter()
             .filter(|wire| wire.name.starts_with("z"))
             .sorted_by(|lhs, rhs| lhs.name.cmp(&rhs.name))
-            .for_each(|wire| println!("{} -> {:?}", wire.name, wire.state));
-        println!("{} wires", circuit.wires.len());
-        println!("{} logic gates", circuit.logic_gates.len());
+            .flat_map(|wire| wire.state.clone().and_then(|state| Some(state.to_int())))
+            .enumerate()
+            .fold(0, |acc, (i, curr)| acc + (curr << i));
 
-        todo!()
+        result.to_string()
     }
 
     fn part2(&self, input: &str) -> String {
