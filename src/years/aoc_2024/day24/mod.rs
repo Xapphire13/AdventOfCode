@@ -10,6 +10,8 @@ use crate::aoc_solution::Solution;
 
 pub struct Day24;
 
+const NUM_BITS: u8 = 45;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum WireState {
     On,
@@ -109,7 +111,7 @@ impl LogicGate {
 }
 
 struct Circuit {
-    initial_wire_states: HashMap<usize, WireState>,
+    initial_wire_states: Vec<(usize, WireState)>,
     wires: Vec<Wire>,
     logic_gates: Vec<LogicGate>,
 }
@@ -119,7 +121,7 @@ impl Circuit {
         let mut lines = input.trim().lines();
 
         let mut circuit = Circuit {
-            initial_wire_states: HashMap::new(),
+            initial_wire_states: vec![],
             wires: vec![],
             logic_gates: vec![],
         };
@@ -146,7 +148,7 @@ impl Circuit {
 
             circuit
                 .initial_wire_states
-                .insert(circuit.wires.len(), WireState::from_str(initial_state));
+                .push((circuit.wires.len(), WireState::from_str(initial_state)));
             circuit.wires.push(wire);
         }
 
@@ -217,6 +219,31 @@ impl Circuit {
             }
         }
     }
+
+    fn set_input(&mut self, prefix: &str, value: u64) {
+        let mut value = value;
+        for i in 0..NUM_BITS {
+            let bit = (value & 1).to_string();
+            value = value >> 1;
+
+            let wire_name = format!("{}{:02}", prefix, i);
+            let wire_index = self.get_or_insert_wire_index(&wire_name);
+
+            self.initial_wire_states
+                .push((wire_index, WireState::from_str(&bit)));
+        }
+    }
+}
+
+fn get_result(circuit: &Circuit, prefix: &str) -> u64 {
+    circuit
+        .wires
+        .iter()
+        .filter(|wire| wire.name.starts_with(prefix))
+        .sorted_by(|lhs, rhs| lhs.name.cmp(&rhs.name))
+        .flat_map(|wire| wire.state.clone().and_then(|state| Some(state.to_int())))
+        .enumerate()
+        .fold(0, |acc, (i, curr)| acc + (curr << i))
 }
 
 impl Solution for Day24 {
@@ -224,19 +251,39 @@ impl Solution for Day24 {
         let mut circuit = Circuit::parse_input(input);
 
         circuit.simulate();
-        let result = circuit
-            .wires
-            .iter()
-            .filter(|wire| wire.name.starts_with("z"))
-            .sorted_by(|lhs, rhs| lhs.name.cmp(&rhs.name))
-            .flat_map(|wire| wire.state.clone().and_then(|state| Some(state.to_int())))
-            .enumerate()
-            .fold(0, |acc, (i, curr)| acc + (curr << i));
+        let result = get_result(&circuit, "z");
 
         result.to_string()
     }
 
     fn part2(&self, input: &str) -> String {
-        String::from("Not implemented")
+        for bit in 0..NUM_BITS {
+            let mut circuit = Circuit::parse_input(input);
+            circuit.initial_wire_states.clear();
+            circuit.set_input("x", 0);
+            circuit.set_input("y", 1 << bit);
+
+            circuit.simulate();
+
+            let x = get_result(&circuit, "x");
+            let y = get_result(&circuit, "y");
+            let result = get_result(&circuit, "z");
+            let is_correct = result == (x + y);
+
+            if !is_correct {
+                println!("Issue with bit: {}", bit);
+                println!("  {:046b} ({0})", x);
+                println!("+ {:046b} ({0})", y);
+                println!(
+                    "= {:046b} ({0}) | {}",
+                    result,
+                    if is_correct { "TRUE" } else { "FALSE" }
+                );
+                println!();
+            }
+        }
+
+        // format!("{:045b}", result)
+        todo!()
     }
 }
