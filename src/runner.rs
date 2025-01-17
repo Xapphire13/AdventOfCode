@@ -53,7 +53,7 @@ impl Solution for Day{day} {{
     }}
 
     fn part2(&self, input: &str) -> String {{
-        String::from(\"Not implemented\")
+        todo!()
     }}
 }}"
             )
