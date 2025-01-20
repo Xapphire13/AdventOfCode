@@ -1,5 +1,5 @@
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::VecDeque,
     ops::{BitAnd, BitOr, BitXor},
 };
 
@@ -9,8 +9,6 @@ use regex::Regex;
 use crate::aoc_solution::Solution;
 
 pub struct Day24;
-
-const NUM_BITS: u8 = 45;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum WireState {
@@ -77,6 +75,7 @@ struct Wire {
     dependency_indices: Vec<usize>,
 }
 
+#[derive(PartialEq, Eq)]
 enum GateType {
     And,
     Or,
@@ -90,6 +89,14 @@ impl GateType {
             "OR" => GateType::Or,
             "XOR" => GateType::Xor,
             unknown => panic!("Unknown gate type: {}", unknown),
+        }
+    }
+
+    fn to_str(&self) -> &str {
+        match self {
+            GateType::And => "AND",
+            GateType::Or => "OR",
+            GateType::Xor => "XOR",
         }
     }
 }
@@ -178,8 +185,12 @@ impl Circuit {
         circuit
     }
 
+    fn get_wire_index(&self, name: &str) -> Option<usize> {
+        self.wires.iter().position(|wire| wire.name == name)
+    }
+
     fn get_or_insert_wire_index(&mut self, name: &str) -> usize {
-        if let Some(index) = self.wires.iter().position(|wire| wire.name == name) {
+        if let Some(index) = self.get_wire_index(name) {
             return index;
         }
 
@@ -222,16 +233,119 @@ impl Circuit {
 
     fn set_input(&mut self, prefix: &str, value: u64) {
         let mut value = value;
-        for i in 0..NUM_BITS {
+        for i in 0..45 {
             let bit = (value & 1).to_string();
             value = value >> 1;
 
             let wire_name = format!("{}{:02}", prefix, i);
-            let wire_index = self.get_or_insert_wire_index(&wire_name);
+            let wire_index = self.get_wire_index(&wire_name).unwrap();
 
             self.initial_wire_states
                 .push((wire_index, WireState::from_str(&bit)));
         }
+    }
+
+    fn print_wire(&self, wire_name: &str, depth: usize) {
+        print!("{}", "     |".repeat(depth));
+
+        if depth >= 6 {
+            println!("...");
+            return;
+        }
+
+        if ['x', 'y'].contains(&wire_name.chars().nth(0).unwrap()) {
+            println!("- {}", wire_name);
+        } else {
+            let wire_index = self.get_wire_index(wire_name).unwrap();
+            let parent_gate = self
+                .logic_gates
+                .iter()
+                .find(|gate| gate.output_index == wire_index)
+                .unwrap();
+
+            println!("{} ←[{}]", wire_name, parent_gate.kind.to_str());
+
+            let input_1 = parent_gate.inputs_indices[0];
+            let input_2 = parent_gate.inputs_indices[1];
+            self.print_wire(&self.wires[input_1].name, depth + 1);
+            self.print_wire(&self.wires[input_2].name, depth + 1);
+        }
+    }
+
+    fn get_parent_gate(&self, wire_name: &str) -> &LogicGate {
+        let wire_index = self.get_wire_index(wire_name).unwrap();
+
+        self.logic_gates
+            .iter()
+            .find(|gate| gate.output_index == wire_index)
+            .unwrap()
+    }
+
+    fn verify(&self, wire_name: &str) -> bool {
+        if !wire_name.starts_with("z") {
+            return false;
+        }
+
+        let bit_number = &wire_name[1..];
+        let parent_gate = self.get_parent_gate(wire_name);
+
+        if bit_number == "45" && parent_gate.kind == GateType::Or {
+            return true;
+        }
+
+        if parent_gate.kind != GateType::Xor {
+            println!("Parent not XOR");
+            return false;
+        }
+
+        if bit_number == "00" {
+            return true;
+        }
+
+        let input_1 = &self.wires[parent_gate.inputs_indices[0]];
+        let input_2 = &self.wires[parent_gate.inputs_indices[1]];
+
+        let xy_xor = [input_1, input_2].into_iter().find(|wire| {
+            let parent_gate = self.get_parent_gate(&wire.name);
+            parent_gate.kind == GateType::Xor
+        });
+        let carry = [&input_1, &input_2].into_iter().find(|wire| {
+            let parent_gate = self.get_parent_gate(&wire.name);
+            if bit_number == "01" {
+                parent_gate.kind == GateType::And
+            } else {
+                parent_gate.kind == GateType::Or
+            }
+        });
+
+        if let Some(xy_xor) = xy_xor {
+            let parent_gate = self.get_parent_gate(&xy_xor.name);
+            let inputs = [
+                &self.wires[parent_gate.inputs_indices[0]].name,
+                &self.wires[parent_gate.inputs_indices[1]].name,
+            ];
+
+            if !inputs
+                .iter()
+                .any(|&wire_name| wire_name == &format!("x{}", bit_number))
+                || !inputs
+                    .iter()
+                    .any(|&wire_name| wire_name == &format!("y{}", bit_number))
+            {
+                println!("Wrong XY values");
+                return false;
+            }
+        } else {
+            println!("No input XOR");
+            return false;
+        }
+
+        if carry.is_none() {
+            println!("No carry bit");
+            return false;
+        }
+
+        true
     }
 }
 
@@ -257,33 +371,41 @@ impl Solution for Day24 {
     }
 
     fn part2(&self, input: &str) -> String {
-        for bit in 0..NUM_BITS {
-            let mut circuit = Circuit::parse_input(input);
-            circuit.initial_wire_states.clear();
-            circuit.set_input("x", 0);
-            circuit.set_input("y", 1 << bit);
+        let circuit = Circuit::parse_input(input);
 
-            circuit.simulate();
+        for bit in 0..46 {
+            let wire_name = format!("z{:02}", bit);
+            print!("Verifying {}... ", wire_name);
+            let result = circuit.verify(&wire_name);
+            println!("{}", if result { "PASS!" } else { "FAIL!" });
 
-            let x = get_result(&circuit, "x");
-            let y = get_result(&circuit, "y");
-            let result = get_result(&circuit, "z");
-            let is_correct = result == (x + y);
-
-            if !is_correct {
-                println!("Issue with bit: {}", bit);
-                println!("  {:046b} ({0})", x);
-                println!("+ {:046b} ({0})", y);
-                println!(
-                    "= {:046b} ({0}) | {}",
-                    result,
-                    if is_correct { "TRUE" } else { "FALSE" }
-                );
+            if !result {
+                circuit.print_wire(&wire_name, 0);
                 println!();
             }
         }
 
-        // format!("{:045b}", result)
-        todo!()
+        // Adder value = x XOR y XOR pcarry
+        // Adder carry = (x AND y) OR ((x XOR y) AND pcarry)
+        //
+        // Example:
+        // z <-[XOR]
+        //     |...-[XOR]
+        //     |    |...-x
+        //     |    |...-y
+        //     |...-[OR]
+        //          |...-[AND]
+        //          |    |...-x'
+        //          |    |...-y'
+        //          |...-[AND]
+        //               |...-pcarry (x'' y'')
+        //               |...-[XOR]
+        //                    |...-x'
+        //                    |...-y'
+
+        // Found by inspecting output of above and comparing with wiring diagram
+        let swapped_gates = ["krj", "bpt", "ngr", "z11", "fkp", "z06", "mfm", "z31"];
+
+        swapped_gates.iter().sorted().join(",")
     }
 }
