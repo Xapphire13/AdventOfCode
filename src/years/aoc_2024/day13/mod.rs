@@ -25,26 +25,6 @@ struct ClawMachine {
 
 impl ClawMachine {
     fn fewest_tokens(&self) -> Option<u32> {
-        // // a = (b(y'-x') - py + px) / (x-y)
-        // // b = (px - (b(y'-x') - py + px) / (x-y)x) / x'
-
-        // let equation = |b: u32| -> f32 {
-        //     (b as f32 * (self.button_b.y as f32 - self.button_b.x as f32)
-        //         + self.prize_location.x as f32
-        //         - self.prize_location.y as f32)
-        //         / (self.button_a.x as f32 - self.button_a.y as f32)
-        // };
-
-        // for b in 0..=100 {
-        //     let a = equation(b);
-
-        //     println!("a {}, b {}", a, b);
-        //     if (0.0..=100.0).contains(&a) && a.fract() == 0.0 {
-        //         println!("{}, {}", a, b);
-        //         return Some(3 * a as u32 + b);
-        //     }
-        // }
-
         for b in 0..=100 {
             for a in 0..=100 {
                 let result = Coordinate {
@@ -102,6 +82,30 @@ impl Problem {
     }
 }
 
+fn is_integer(x: f64) -> bool {
+    x.fract().abs() < f64::EPSILON
+}
+
+fn calculate_a(x: i64, xx: i64, y: i64, yy: i64, c: i64, d: i64) -> Option<u64> {
+    let result = (c * yy - d * xx) as f64 / (x * yy - y * xx) as f64;
+
+    if is_integer(result) {
+        Some(result as u64)
+    } else {
+        None
+    }
+}
+
+fn calculate_b(x: i64, xx: i64, y: i64, yy: i64, c: i64, d: i64) -> Option<u64> {
+    let result = (c * y - d * x) as f64 / (y * xx - x * yy) as f64;
+
+    if is_integer(result) {
+        Some(result as u64)
+    } else {
+        None
+    }
+}
+
 impl Solution for Day13 {
     fn part1(&self, input: &str) -> String {
         let problem = Problem::parse_input(input);
@@ -114,8 +118,35 @@ impl Solution for Day13 {
             .to_string()
     }
 
-    fn part2(&self, _input: &str) -> String {
-        todo!()
+    fn part2(&self, input: &str) -> String {
+        // Add 10000000000000 to the X and Y of each price coord
+        const OFFSET: i64 = 10000000000000;
+
+        let problem = Problem::parse_input(input);
+
+        problem
+            .machines
+            .iter()
+            .flat_map(|machine| {
+                let x = machine.button_a.x as i64;
+                let xx = machine.button_b.x as i64;
+                let y = machine.button_a.y as i64;
+                let yy = machine.button_b.y as i64;
+                let c = machine.prize_location.x as i64 + OFFSET;
+                let d = machine.prize_location.y as i64 + OFFSET;
+
+                let a = calculate_a(x, xx, y, yy, c, d);
+                let b = calculate_b(x, xx, y, yy, c, d);
+
+                if let (Some(a), Some(b)) = (a, b) {
+                    let result = 3 * a + b;
+                    Some(result)
+                } else {
+                    None
+                }
+            })
+            .sum::<u64>()
+            .to_string()
     }
 }
 
@@ -132,12 +163,26 @@ mod tests {
             Button A: X+94, Y+34
             Button B: X+22, Y+67
             Prize: X=8400, Y=5400
-
             "
         );
 
         let result = Day13.part1(input);
 
         assert_eq!(result, "280");
+    }
+
+    #[test]
+    fn test_day13_pt2() {
+        let input = dedent!(
+            "
+            Button A: X+94, Y+34
+            Button B: X+22, Y+67
+            Prize: X=8400, Y=5400
+            "
+        );
+
+        let result = Day13.part2(input);
+
+        assert_eq!(result, "0");
     }
 }
