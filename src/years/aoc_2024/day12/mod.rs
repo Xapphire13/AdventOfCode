@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 
+use itertools::Itertools;
+
 use crate::aoc_solution::Solution;
 
 pub struct Day12;
@@ -9,7 +11,7 @@ enum Fence {
     Horizontal(Coordinate),
 }
 
-#[derive(PartialEq, Eq, Hash, Debug)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
 struct Coordinate {
     x: usize,
     y: usize,
@@ -220,6 +222,97 @@ impl Problem {
 
         result
     }
+
+    fn get_at(&self, coordinate: Coordinate) -> &Plant {
+        &self.map[coordinate.y][coordinate.x]
+    }
+
+    fn height(&self) -> usize {
+        self.map.len()
+    }
+
+    fn width(&self) -> usize {
+        self.map[0].len()
+    }
+
+    fn count_corners(&self, coordinate: Coordinate) -> usize {
+        let mut result = 0;
+        let plant = self.get_at(coordinate.clone());
+
+        let vertical_neighbors = vec![coordinate.up(), coordinate.down(self.height())]
+            .into_iter()
+            .flatten()
+            .filter(|coord| self.get_at(coord.clone()).kind == plant.kind)
+            .count();
+        let horizontal_neighbors = vec![coordinate.left(), coordinate.right(self.width())]
+            .into_iter()
+            .flatten()
+            .filter(|coord| self.get_at(coord.clone()).kind == plant.kind)
+            .count();
+
+        if vertical_neighbors == 1 && horizontal_neighbors == 1 {
+            // Inner corner
+            result += 1;
+        } else if (vertical_neighbors == 0 && horizontal_neighbors == 1)
+            || (vertical_neighbors == 1 && horizontal_neighbors == 0)
+        {
+            // Line-end corner
+            result += 2
+        } else if vertical_neighbors == 0 && horizontal_neighbors == 0 {
+            // Single area
+            result += 4;
+        }
+
+        // Outer Corner
+        result += vec![
+            (
+                coordinate.left().and_then(|it| it.up()),
+                (coordinate.left(), coordinate.up()),
+            ),
+            (
+                coordinate.right(self.width()).and_then(|it| it.up()),
+                (coordinate.right(self.width()), coordinate.up()),
+            ),
+            (
+                coordinate.left().and_then(|it| it.down(self.height())),
+                (coordinate.left(), coordinate.down(self.height())),
+            ),
+            (
+                coordinate
+                    .right(self.width())
+                    .and_then(|it| it.down(self.height())),
+                (
+                    coordinate.right(self.width()),
+                    coordinate.down(self.height()),
+                ),
+            ),
+        ]
+        .into_iter()
+        .flat_map(|neighbor| {
+            if let Some(diag) = neighbor.0 {
+                if self.get_at(diag).kind == plant.kind {
+                    // Diag must be of different type
+                    return None;
+                }
+
+                if let (Some(a), Some(b)) = neighbor.1 {
+                    // Adjacent's must be of same type
+                    if self.get_at(a).kind == plant.kind && self.get_at(b).kind == plant.kind {
+                        Some(true)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        })
+        .count();
+
+        result
+    }
 }
 
 impl Solution for Day12 {
@@ -241,51 +334,14 @@ impl Solution for Day12 {
             .find_regions()
             .iter()
             .map(|region| {
-                let fences = problem.region_perimeter(region);
-
-                let mut vertical_positions = fences
+                let number_of_sides = region
                     .iter()
-                    .filter_map(|fence| match fence {
-                        Fence::Vertical(position) => Some(position),
-                        Fence::Horizontal(_) => None,
-                    })
-                    .collect::<Vec<_>>();
-                vertical_positions.sort_by(|a, b| match a.x.cmp(&b.x) {
-                    std::cmp::Ordering::Equal => a.y.cmp(&b.y),
-                    it => it,
-                });
-                let mut vertical_sections = if !vertical_positions.is_empty() { 1 } else { 0 };
-                for (i, &section) in vertical_positions.iter().enumerate().skip(1) {
-                    let prev_section = vertical_positions[i - 1];
+                    .map(|plant| problem.count_corners(plant.position.clone()))
+                    .sum::<usize>();
 
-                    if prev_section.x != section.x || prev_section.y != section.y - 1 {
-                        vertical_sections += 1;
-                    }
-                }
-
-                let mut horizontal_positions = fences
-                    .iter()
-                    .filter_map(|fence| match fence {
-                        Fence::Vertical(_) => None,
-                        Fence::Horizontal(position) => Some(position),
-                    })
-                    .collect::<Vec<_>>();
-                horizontal_positions.sort_by(|a, b| match a.y.cmp(&b.y) {
-                    std::cmp::Ordering::Equal => a.x.cmp(&b.x),
-                    it => it,
-                });
-                let mut horizontal_sections = if !horizontal_positions.is_empty() { 1 } else { 0 };
-                for (i, &section) in horizontal_positions.iter().enumerate().skip(1) {
-                    let prev_section = horizontal_positions[i - 1];
-
-                    if prev_section.y != section.y || prev_section.x != section.x - 1 {
-                        horizontal_sections += 1;
-                    }
-                }
-
-                region.len() as u32 * (vertical_sections + horizontal_sections)
+                region.len() * number_of_sides
             })
-            .sum::<u32>()
+            .sum::<usize>()
             .to_string()
     }
 }
@@ -323,15 +379,106 @@ mod tests {
     fn test_day12_2() {
         let input = dedent!(
             "
-            EEEEE
-            EXXXX
-            EEEEE
-            EXXXX
-            EEEEE
+            AAAAAA
+            AAABBA
+            AAABBA
+            ABBAAA
+            ABBAAA
+            AAAAAA
             "
         );
         let result2 = Day12.part2(input);
 
-        assert_eq!(result2, "236");
+        assert_eq!(result2, "368");
+    }
+
+    #[test]
+    fn inner_corner() {
+        let input = dedent!(
+            "
+            AAA
+            AAA
+            AAA
+            "
+        );
+        let problem = Problem::parse_input(input);
+
+        assert_eq!(problem.count_corners(Coordinate { x: 0, y: 0 }), 1);
+        assert_eq!(problem.count_corners(Coordinate { x: 2, y: 0 }), 1);
+        assert_eq!(problem.count_corners(Coordinate { x: 0, y: 2 }), 1);
+        assert_eq!(problem.count_corners(Coordinate { x: 2, y: 2 }), 1);
+    }
+
+    #[test]
+    fn outer_corner() {
+        let input = dedent!(
+            "
+            AAAAAA
+            AAAAAA
+            AA..AA
+            AAAAAA
+            AAAAAA
+            "
+        );
+        let problem = Problem::parse_input(input);
+
+        assert_eq!(problem.count_corners(Coordinate { x: 1, y: 1 }), 1);
+        assert_eq!(problem.count_corners(Coordinate { x: 4, y: 1 }), 1);
+        assert_eq!(problem.count_corners(Coordinate { x: 1, y: 3 }), 1);
+        assert_eq!(problem.count_corners(Coordinate { x: 4, y: 3 }), 1);
+    }
+
+    #[test]
+    fn inner_and_outer_corner() {
+        let input = dedent!(
+            "
+            AAA
+            A.A
+            AAA
+            "
+        );
+        let problem = Problem::parse_input(input);
+
+        assert_eq!(problem.count_corners(Coordinate { x: 0, y: 0 }), 2);
+        assert_eq!(problem.count_corners(Coordinate { x: 2, y: 0 }), 2);
+        assert_eq!(problem.count_corners(Coordinate { x: 0, y: 2 }), 2);
+        assert_eq!(problem.count_corners(Coordinate { x: 2, y: 2 }), 2);
+    }
+
+    #[test]
+    fn line_end_corner() {
+        let input = dedent!(
+            "
+            AAA
+            "
+        );
+        let problem = Problem::parse_input(input);
+
+        assert_eq!(problem.count_corners(Coordinate { x: 0, y: 0 }), 2);
+        assert_eq!(problem.count_corners(Coordinate { x: 2, y: 0 }), 2);
+    }
+
+    #[test]
+    fn not_a_corner() {
+        let input = dedent!(
+            "
+            AAA
+            "
+        );
+        let problem = Problem::parse_input(input);
+
+        assert_eq!(problem.count_corners(Coordinate { x: 1, y: 0 }), 0);
+    }
+
+    #[test]
+    fn single_area() {
+        let input = dedent!(
+            "
+            A
+            "
+        );
+        let problem = Problem::parse_input(input);
+
+        assert_eq!(problem.count_corners(Coordinate { x: 0, y: 0 }), 4);
     }
 }
