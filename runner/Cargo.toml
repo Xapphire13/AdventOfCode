@@ -1,0 +1,13 @@
+[package]
+name = "runner"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "aoc"
+path = "src/main.rs"
+
+[dependencies]
+aoc-2022 = { path = "../aoc-2022" }
+aoc-2024 = { path = "../aoc-2024" }
+colored = { workspace = true }

@@ -1,0 +1,12 @@
+[package]
+name = "aoc-2022"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+shared = { path = "../shared" }
+colored = { workspace = true }
+itertools = { workspace = true }
+regex = { workspace = true }
+num = { workspace = true }
+lazy_static = "1.5.0"
