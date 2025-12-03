@@ -64,7 +64,7 @@ impl Problem {
             let result = if stone == 0 {
                 // 0 replaced by 1
                 dfs(1, times - 1, memo)
-            } else if (stone.to_string().len() % 2) == 0 {
+            } else if stone.to_string().len().is_multiple_of(2) {
                 // Even digits split
                 let digit_string = stone.to_string();
                 let length = digit_string.len();

@@ -10,4 +10,6 @@ path = "src/main.rs"
 [dependencies]
 aoc-2022 = { path = "../aoc-2022" }
 aoc-2024 = { path = "../aoc-2024" }
+aoc-2025 = { path = "../aoc-2025" }
 colored = { workspace = true }
+shared = {path = "../shared"}

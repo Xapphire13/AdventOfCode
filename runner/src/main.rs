@@ -1,6 +1,9 @@
 use colored::Colorize;
+use shared::Solution;
 use std::env;
+use std::fs;
 use std::process;
+use std::time::Instant;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -89,11 +92,40 @@ fn run_solution(year: u32, day: u32) {
     match year {
         2022 => aoc_2022::run_day(day, &input_path),
         2024 => aoc_2024::run_day(day, &input_path),
+        2025 => {
+            if let Some(solution) = aoc_2025::get_solutions().into_iter().find_map(|solution| {
+                if solution.0 == day {
+                    Some(solution.1)
+                } else {
+                    None
+                }
+            }) {
+                run_day(solution, &input_path)
+            } else {
+                eprintln!("Day {day} not implemented for 2025")
+            }
+        }
         _ => {
             eprintln!("Year {year} not implemented");
             process::exit(1);
         }
     }
+}
+
+/// Runs the solution for a specific day
+pub fn run_day(solution: Box<dyn Solution>, input_path: &str) {
+    let input = fs::read_to_string(input_path)
+        .unwrap_or_else(|_| panic!("Failed to read input file: {input_path}"));
+
+    let start = Instant::now();
+    let result = solution.part1(&input);
+    let duration = start.elapsed();
+    println!("Part 1: {result} ({duration:?})");
+
+    let start = Instant::now();
+    let result = solution.part2(&input);
+    let duration = start.elapsed();
+    println!("Part 2: {result} ({duration:?})");
 }
 
 fn create_solution(year: u32, day: u32) {
@@ -120,7 +152,7 @@ fn create_solution(year: u32, day: u32) {
     // Create mod.rs if it doesn't exist
     if !Path::new(&mod_path).exists() {
         let template = format!(
-            "use shared::Solution;\n\npub struct Day{day};\n\nimpl Solution for Day{day} {{\n    fn part1(&self, input: &str) -> String {{\n        todo!()\n    }}\n\n    fn part2(&self, input: &str) -> String {{\n        todo!()\n    }}\n}}"
+            "use shared::Solution;\n\npub struct Day{day};\n\nimpl Solution for Day{day} {{\n    fn part1(&self, input: &str) -> String {{\n        String::from(\"todo\")\n    }}\n\n    fn part2(&self, input: &str) -> String {{\n        String::from(\"todo\")\n    }}\n}}"
         );
 
         if let Err(e) = fs::write(&mod_path, template) {
@@ -155,7 +187,7 @@ fn create_solution(year: u32, day: u32) {
             );
             println!(
                 "{}",
-                format!("⚠ And add day {day} to the run_day() match statement").yellow()
+                format!("⚠ And add day {day} to the get_solutions() function").yellow()
             );
         }
     }

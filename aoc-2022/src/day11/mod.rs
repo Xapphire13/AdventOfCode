@@ -16,7 +16,7 @@ struct Test {
 
 impl Test {
     fn execute(&self, worry_score: u64) -> u64 {
-        if worry_score % self.divisor == 0 {
+        if worry_score.is_multiple_of(self.divisor) {
             self.on_pass
         } else {
             self.on_fail
@@ -180,5 +180,5 @@ fn part2(input: &[String]) -> u64 {
     monkeys
         .iter()
         .take(2)
-        .fold(1, |acc, monkey| (acc * monkey.inspections_made))
+        .fold(1, |acc, monkey| acc * monkey.inspections_made)
 }

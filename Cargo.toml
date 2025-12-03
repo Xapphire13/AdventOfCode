@@ -4,6 +4,7 @@ members = [
     "shared",
     "aoc-2022",
     "aoc-2024",
+    "aoc-2025",
     "runner",
 ]
 
