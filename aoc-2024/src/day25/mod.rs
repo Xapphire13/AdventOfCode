@@ -31,8 +31,10 @@ impl Schematics {
                 for _ in 0..5 {
                     let line = lines.next().unwrap();
 
-                    for col in 0..5 {
-                        if let Some('#') = line.chars().nth(col) { pin_heights[col] += 1 }
+                    for (col, height) in pin_heights.iter_mut().enumerate() {
+                        if let Some('#') = line.chars().nth(col) {
+                            *height += 1;
+                        }
                     }
                 }
 
@@ -43,8 +45,10 @@ impl Schematics {
                 for _ in 0..5 {
                     let line = lines.next().unwrap();
 
-                    for col in 0..5 {
-                        if let Some('#') = line.chars().nth(col) { heights[col] += 1 }
+                    for (col, height) in heights.iter_mut().enumerate() {
+                        if let Some('#') = line.chars().nth(col) {
+                            *height += 1;
+                        }
                     }
                 }
 

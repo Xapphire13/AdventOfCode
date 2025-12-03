@@ -44,8 +44,8 @@ fn is_visible(grid: &TreeGrid, row: usize, col: usize) -> bool {
     visible = true;
 
     // Top Edge
-    for r in 0..row {
-        if grid[r][col] >= height {
+    for row in grid.iter().take(row) {
+        if row[col] >= height {
             visible = false;
             break;
         }
@@ -58,8 +58,8 @@ fn is_visible(grid: &TreeGrid, row: usize, col: usize) -> bool {
     visible = true;
 
     // Bottom Edge
-    for r in (row + 1)..grid.len() {
-        if grid[r][col] >= height {
+    for row in grid.iter().skip(row + 1) {
+        if row[col] >= height {
             visible = false;
             break;
         }
@@ -110,12 +110,12 @@ fn calculate_scenic_score(grid: &TreeGrid, row: usize, col: usize) -> usize {
     }
 
     // Down
-    for r in (row + 1)..grid.len() {
-        if grid[r][col] <= height {
+    for row in grid.iter().skip(row + 1) {
+        if row[col] <= height {
             down += 1;
         }
 
-        if grid[r][col] >= height {
+        if row[col] >= height {
             break;
         }
     }

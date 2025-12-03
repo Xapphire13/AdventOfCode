@@ -44,7 +44,7 @@ fn main() -> Result<()> {
     let path = Path::new(&path_string);
     let file = File::open(path).unwrap();
     let reader = BufReader::new(file);
-    let lines: Vec<String> = reader.lines().filter_map(io::Result::ok).collect();
+    let lines: Vec<String> = reader.lines().map_while(io::Result::ok).collect();
 
     match day {
         1 => day01::run(lines),

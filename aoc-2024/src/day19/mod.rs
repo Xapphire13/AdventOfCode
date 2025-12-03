@@ -6,14 +6,14 @@ pub struct Day19;
 
 #[derive(Debug)]
 enum TrieNode {
-    RootNode { children: HashMap<char, TrieNode> },
-    ValueNode { children: HashMap<char, TrieNode> },
-    TerminalNode,
+    Root { children: HashMap<char, TrieNode> },
+    Value { children: HashMap<char, TrieNode> },
+    Terminal,
 }
 
 impl TrieNode {
     fn from(values: &Vec<String>) -> TrieNode {
-        let mut root = TrieNode::RootNode {
+        let mut root = TrieNode::Root {
             children: HashMap::new(),
         };
 
@@ -22,20 +22,19 @@ impl TrieNode {
 
             for char in value.chars() {
                 let next = match current {
-                    TrieNode::RootNode { children } | TrieNode::ValueNode { children, .. } => {
-                        children.entry(char).or_insert_with(|| TrieNode::ValueNode {
+                    TrieNode::Root { children } | TrieNode::Value { children, .. } => {
+                        children.entry(char).or_insert_with(|| TrieNode::Value {
                             children: HashMap::new(),
                         })
                     }
-                    TrieNode::TerminalNode => break,
+                    TrieNode::Terminal => break,
                 };
 
                 current = next;
             }
 
-            if let TrieNode::RootNode { children } | TrieNode::ValueNode { children, .. } = current
-            {
-                children.insert('*', TrieNode::TerminalNode);
+            if let TrieNode::Root { children } | TrieNode::Value { children, .. } = current {
+                children.insert('*', TrieNode::Terminal);
             }
         }
 
@@ -44,7 +43,7 @@ impl TrieNode {
 
     fn test(&self, input: &str, root: &TrieNode, solution_memo: &mut HashMap<String, u64>) -> u64 {
         match self {
-            TrieNode::RootNode { children } => {
+            TrieNode::Root { children } => {
                 if solution_memo.contains_key(input) {
                     return *solution_memo.get(input).unwrap();
                 }
@@ -60,7 +59,7 @@ impl TrieNode {
 
                 result
             }
-            TrieNode::ValueNode { children, .. } => {
+            TrieNode::Value { children, .. } => {
                 let mut result = 0;
 
                 if let Some(next_char) = input.chars().next() {
@@ -77,7 +76,7 @@ impl TrieNode {
 
                 result
             }
-            TrieNode::TerminalNode => 0,
+            TrieNode::Terminal => 0,
         }
     }
 }
@@ -115,9 +114,7 @@ impl Solution for Day19 {
         problem
             .designs
             .iter()
-            .filter(|design| {
-                trie.test(design, &trie, &mut solution_memo) > 0
-            })
+            .filter(|design| trie.test(design, &trie, &mut solution_memo) > 0)
             .count()
             .to_string()
     }

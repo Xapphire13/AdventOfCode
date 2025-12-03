@@ -49,7 +49,7 @@ fn part1(input: &Vec<String>) -> u32 {
     result
 }
 
-fn part2(input: &Vec<String>) -> u32 {
+fn part2(input: &[String]) -> u32 {
     let mut result = 0;
 
     let mut i = 0;

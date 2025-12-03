@@ -173,9 +173,7 @@ impl Solution for Day23 {
 
                 for y in (x + 1)..sorted_ids.len() {
                     let second_id = sorted_ids[y];
-                    for z in (y + 1)..sorted_ids.len() {
-                        let third_id = sorted_ids[z];
-
+                    for &third_id in sorted_ids.iter().skip(y + 1) {
                         result.insert(NodeGroup {
                             node_ids: vec![first_id.clone(), second_id.clone(), third_id.clone()],
                         });
