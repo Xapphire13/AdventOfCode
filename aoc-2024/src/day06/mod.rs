@@ -45,7 +45,7 @@ impl Cell {
             '<' => Ok(Cell::Guard {
                 direction: Direction::Left,
             }),
-            _ => Err(format!("{} is not a valid location", charactor)),
+            _ => Err(format!("{charactor} is not a valid location")),
         }
     }
 }

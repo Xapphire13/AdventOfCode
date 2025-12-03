@@ -36,11 +36,11 @@ fn main() -> Result<()> {
                 day = value;
                 break;
             }
-            Err(_) => println!("Invalid input: {}", input),
+            Err(_) => println!("Invalid input: {input}"),
         }
     }
 
-    let path_string = format!("src/day{:0>2}/input.txt", day);
+    let path_string = format!("src/day{day:0>2}/input.txt");
     let path = Path::new(&path_string);
     let file = File::open(path).unwrap();
     let reader = BufReader::new(file);

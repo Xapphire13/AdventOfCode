@@ -117,7 +117,7 @@ impl Crt {
     fn display(&self) {
         for row in self.buffer {
             for col in row {
-                print!("{}", col);
+                print!("{col}");
             }
 
             println!();

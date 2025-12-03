@@ -176,9 +176,7 @@ impl Map {
 
     fn get(&self, position: Position) -> MapCell {
         if self
-            .beacons
-            .iter()
-            .any(|beacon_position| *beacon_position == position)
+            .beacons.contains(&position)
         {
             return MapCell::Beacon;
         }

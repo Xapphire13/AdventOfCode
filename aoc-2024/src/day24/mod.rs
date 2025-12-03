@@ -57,7 +57,7 @@ impl WireState {
         match value {
             "1" => WireState::On,
             "0" => WireState::Off,
-            unknown => panic!("Unknown state: {}", unknown),
+            unknown => panic!("Unknown state: {unknown}"),
         }
     }
 
@@ -88,7 +88,7 @@ impl GateType {
             "AND" => GateType::And,
             "OR" => GateType::Or,
             "XOR" => GateType::Xor,
-            unknown => panic!("Unknown gate type: {}", unknown),
+            unknown => panic!("Unknown gate type: {unknown}"),
         }
     }
 
@@ -139,7 +139,7 @@ impl Circuit {
         // Example "x00 AND y00 -> z00"
         let logic_gate_regex = Regex::new("([^ ]+) ([^ ]+) ([^ ]+) -> ([^ ]+)").unwrap();
 
-        while let Some(line) = lines.next() {
+        for line in lines.by_ref() {
             if line.is_empty() {
                 break;
             }
@@ -159,7 +159,7 @@ impl Circuit {
             circuit.wires.push(wire);
         }
 
-        while let Some(line) = lines.next() {
+        for line in lines {
             let (_, [wire_one, gate, wire_two, output]) =
                 logic_gate_regex.captures(line).unwrap().extract();
 
@@ -208,7 +208,7 @@ impl Circuit {
         let mut update_queue: VecDeque<(usize, WireState)> = self
             .initial_wire_states
             .iter()
-            .map(|update| (update.0.clone(), update.1.clone()))
+            .map(|update| (update.0, update.1.clone()))
             .collect();
 
         while let Some((wire_index, state)) = update_queue.pop_front() {
@@ -240,7 +240,7 @@ impl Circuit {
         }
 
         if ['x', 'y'].contains(&wire_name.chars().nth(0).unwrap()) {
-            println!("- {}", wire_name);
+            println!("- {wire_name}");
         } else {
             let wire_index = self.get_wire_index(wire_name).unwrap();
             let parent_gate = self
@@ -313,10 +313,10 @@ impl Circuit {
 
             if !inputs
                 .iter()
-                .any(|&wire_name| wire_name == &format!("x{}", bit_number))
+                .any(|&wire_name| wire_name == &format!("x{bit_number}"))
                 || !inputs
                     .iter()
-                    .any(|&wire_name| wire_name == &format!("y{}", bit_number))
+                    .any(|&wire_name| wire_name == &format!("y{bit_number}"))
             {
                 println!("Wrong XY values");
                 return false;
@@ -341,7 +341,7 @@ fn get_result(circuit: &Circuit, prefix: &str) -> u64 {
         .iter()
         .filter(|wire| wire.name.starts_with(prefix))
         .sorted_by(|lhs, rhs| lhs.name.cmp(&rhs.name))
-        .flat_map(|wire| wire.state.clone().and_then(|state| Some(state.to_int())))
+        .flat_map(|wire| wire.state.clone().map(|state| state.to_int()))
         .enumerate()
         .fold(0, |acc, (i, curr)| acc + (curr << i))
 }
@@ -360,8 +360,8 @@ impl Solution for Day24 {
         let circuit = Circuit::parse_input(input);
 
         for bit in 0..46 {
-            let wire_name = format!("z{:02}", bit);
-            print!("Verifying {}... ", wire_name);
+            let wire_name = format!("z{bit:02}");
+            print!("Verifying {wire_name}... ");
             let result = circuit.verify(&wire_name);
             println!("{}", if result { "PASS!" } else { "FAIL!" });
 

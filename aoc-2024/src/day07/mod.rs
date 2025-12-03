@@ -8,7 +8,7 @@ struct Test {
 }
 
 fn concat_op(left: u64, right: u64) -> u64 {
-    format!("{}{}", left, right).parse().unwrap()
+    format!("{left}{right}").parse().unwrap()
 }
 
 impl Test {

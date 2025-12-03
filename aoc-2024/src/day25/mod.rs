@@ -32,10 +32,7 @@ impl Schematics {
                     let line = lines.next().unwrap();
 
                     for col in 0..5 {
-                        match line.chars().nth(col) {
-                            Some('#') => pin_heights[col] += 1,
-                            _ => {}
-                        }
+                        if let Some('#') = line.chars().nth(col) { pin_heights[col] += 1 }
                     }
                 }
 
@@ -47,10 +44,7 @@ impl Schematics {
                     let line = lines.next().unwrap();
 
                     for col in 0..5 {
-                        match line.chars().nth(col) {
-                            Some('#') => heights[col] += 1,
-                            _ => {}
-                        }
+                        if let Some('#') = line.chars().nth(col) { heights[col] += 1 }
                     }
                 }
 

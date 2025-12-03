@@ -204,6 +204,6 @@ mod tests {
 
         let result = grid.find_diagonal();
 
-        assert!(result == 18, "Result = {}", result);
+        assert!(result == 18, "Result = {result}");
     }
 }

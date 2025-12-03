@@ -36,7 +36,7 @@ fn main() {
             create_solution(year, day);
         }
         _ => {
-            eprintln!("Unknown command: {}", command);
+            eprintln!("Unknown command: {command}");
             print_usage();
             process::exit(1);
         }

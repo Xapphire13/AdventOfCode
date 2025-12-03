@@ -43,7 +43,7 @@ impl Key {
             '>' => Key::Right,
             '^' => Key::Up,
             'v' => Key::Down,
-            _ => panic!("Invalid key {}", char),
+            _ => panic!("Invalid key {char}"),
         }
     }
 
@@ -90,7 +90,7 @@ impl Keypad {
         for (from_key, from_pos) in buttons.iter() {
             for (to_key, to_pos) in buttons.iter() {
                 let mut sequences = vec![];
-                let (dx, dy) = to_pos.sub(&from_pos);
+                let (dx, dy) = to_pos.sub(from_pos);
 
                 let move_vertically = |result: &mut Vec<Key>| {
                     for _ in 0..dy.abs() {
@@ -222,16 +222,11 @@ impl Problem {
             let sub_sequences = keypad
                 .input_sequences
                 .get(&(from.clone(), to.clone()))
-                .expect(
-                    format!(
-                        "from: {}, to: {}, depth: {}\n{:#?}",
+                .unwrap_or_else(|| panic!("from: {}, to: {}, depth: {}\n{:#?}",
                         from.to_string(),
                         to.to_string(),
                         depth,
-                        keypad.input_sequences
-                    )
-                    .as_str(),
-                );
+                        keypad.input_sequences));
 
             result += sub_sequences
                 .iter()

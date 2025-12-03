@@ -140,7 +140,7 @@ impl Solution for Day18 {
                 .enumerate()
                 .skip(byte_count)
                 .find_map(|(index, byte_position)| {
-                    if path_coords.contains(&byte_position) {
+                    if path_coords.contains(byte_position) {
                         Some(index)
                     } else {
                         None

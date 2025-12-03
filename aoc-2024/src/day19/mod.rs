@@ -58,7 +58,7 @@ impl TrieNode {
 
                 solution_memo.insert(input.to_string(), result);
 
-                return result;
+                result
             }
             TrieNode::ValueNode { children, .. } => {
                 let mut result = 0;
@@ -75,7 +75,7 @@ impl TrieNode {
                     result += 1;
                 }
 
-                return result;
+                result
             }
             TrieNode::TerminalNode => 0,
         }
@@ -116,7 +116,7 @@ impl Solution for Day19 {
             .designs
             .iter()
             .filter(|design| {
-                return trie.test(design, &trie, &mut solution_memo) > 0;
+                trie.test(design, &trie, &mut solution_memo) > 0
             })
             .count()
             .to_string()

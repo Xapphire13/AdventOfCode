@@ -17,7 +17,7 @@ trait Secret {
 
 impl Secret for u64 {
     fn next(&self) -> Self {
-        let mut result = self.clone();
+        let mut result = *self;
         let temp = result * 64;
         result ^= temp;
         result %= 16777216;
@@ -41,8 +41,7 @@ impl Problem {
         let secrets = input
             .trim()
             .lines()
-            .map(|line| line.parse())
-            .flatten()
+            .flat_map(|line| line.parse())
             .collect_vec();
 
         Problem { secrets }
@@ -57,7 +56,7 @@ impl Solution for Day22 {
             .secrets
             .iter()
             .map(|secret| {
-                let mut result = secret.clone();
+                let mut result = *secret;
 
                 for _ in 0..2000 {
                     result = result.next();

@@ -165,7 +165,7 @@ impl Cpu {
             4 => self.register_a,
             5 => self.register_b,
             6 => self.register_c,
-            invalid => panic!("Invalid combo operand {}", invalid),
+            invalid => panic!("Invalid combo operand {invalid}"),
         }
     }
 }

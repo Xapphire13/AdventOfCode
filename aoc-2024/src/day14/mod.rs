@@ -179,7 +179,7 @@ impl Map {
                     None => ".".to_string(),
                 };
 
-                print!("{}", cell);
+                print!("{cell}");
             }
 
             println!()
@@ -257,7 +257,7 @@ mod tests {
             .quadrants()
             .iter()
             .map(|robots| {
-                println!("{:?}", robots);
+                println!("{robots:?}");
                 robots.len()
             })
             .reduce(|acc, curr| acc * curr)
