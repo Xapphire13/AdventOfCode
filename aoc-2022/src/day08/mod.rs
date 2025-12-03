@@ -17,6 +17,7 @@ fn is_visible(grid: &TreeGrid, row: usize, col: usize) -> bool {
     let mut visible = true;
 
     // Left Edge
+    #[allow(clippy::needless_range_loop)]
     for c in 0..col {
         if grid[row][c] >= height {
             visible = false;
@@ -30,6 +31,7 @@ fn is_visible(grid: &TreeGrid, row: usize, col: usize) -> bool {
 
     visible = true;
     // Right Edge
+    #[allow(clippy::needless_range_loop)]
     for c in (col + 1)..grid[0].len() {
         if grid[row][c] >= height {
             visible = false;
@@ -88,6 +90,7 @@ fn calculate_scenic_score(grid: &TreeGrid, row: usize, col: usize) -> usize {
     }
 
     // Right
+    #[allow(clippy::needless_range_loop)]
     for c in (col + 1)..grid[0].len() {
         if grid[row][c] <= height {
             right += 1;
