@@ -86,7 +86,7 @@ impl Solution for Day25 {
         result.to_string()
     }
 
-    fn part2(&self, input: &str) -> String {
-        String::from("Not implemented")
+    fn part2(&self, _input: &str) -> String {
+        String::from("There is no part two for this question")
     }
 }

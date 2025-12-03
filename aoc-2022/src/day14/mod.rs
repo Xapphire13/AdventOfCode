@@ -32,31 +32,6 @@ impl Slice {
         }
     }
 
-    fn print(&self) {
-        let mut x_min = u32::MAX;
-        let mut x_max = u32::MIN;
-
-        for (Position(x, _), _) in self.data.iter() {
-            x_min = x_min.min(*x);
-            x_max = x_max.max(*x);
-        }
-
-        for y in 0..self.height {
-            for x in x_min..=x_max {
-                print!(
-                    "{} ",
-                    match self.get(Position(x, y)) {
-                        Material::Rock => "#",
-                        Material::Sand => "o",
-                        Material::Air => ".",
-                    }
-                );
-            }
-
-            println!();
-        }
-    }
-
     fn get(&self, Position(x_pos, y_pos): Position) -> Material {
         *self.data.get(&Position(x_pos, y_pos)).unwrap_or_else(|| {
             if self.include_floor && y_pos == self.height - 1 {

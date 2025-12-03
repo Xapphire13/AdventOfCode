@@ -5,8 +5,8 @@ use shared::Solution;
 pub struct Day12;
 
 enum Fence {
-    Vertical(Coordinate),
-    Horizontal(Coordinate),
+    Vertical,
+    Horizontal,
 }
 
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
@@ -150,17 +150,11 @@ impl Problem {
 
                 // Perimeter along plant kind boundaries
                 if neighbor.kind != plant.kind {
-                    result.push(Fence::Vertical(Coordinate {
-                        x: plant.position.x,
-                        y: plant.position.y,
-                    }));
+                    result.push(Fence::Vertical);
                 }
             } else {
                 // Map boundary counts as perimeter
-                result.push(Fence::Vertical(Coordinate {
-                    x: plant.position.x,
-                    y: plant.position.y,
-                }));
+                result.push(Fence::Vertical);
             }
 
             if let Some(Coordinate { x, y }) = plant.position.right(map_width) {
@@ -168,17 +162,11 @@ impl Problem {
 
                 // Perimeter along plant kind boundaries
                 if neighbor.kind != plant.kind {
-                    result.push(Fence::Vertical(Coordinate {
-                        x: plant.position.x + 1,
-                        y: plant.position.y,
-                    }));
+                    result.push(Fence::Vertical);
                 }
             } else {
                 // Map boundary counts as perimeter
-                result.push(Fence::Vertical(Coordinate {
-                    x: plant.position.x + 1,
-                    y: plant.position.y,
-                }));
+                result.push(Fence::Vertical);
             }
 
             if let Some(Coordinate { x, y }) = plant.position.up() {
@@ -186,17 +174,11 @@ impl Problem {
 
                 // Perimeter along plant kind boundaries
                 if neighbor.kind != plant.kind {
-                    result.push(Fence::Horizontal(Coordinate {
-                        x: plant.position.x,
-                        y: plant.position.y,
-                    }));
+                    result.push(Fence::Horizontal);
                 }
             } else {
                 // Map boundary counts as perimeter
-                result.push(Fence::Horizontal(Coordinate {
-                    x: plant.position.x,
-                    y: plant.position.y,
-                }));
+                result.push(Fence::Horizontal);
             }
 
             if let Some(Coordinate { x, y }) = plant.position.down(map_height) {
@@ -204,17 +186,11 @@ impl Problem {
 
                 // Perimeter along plant kind boundaries
                 if neighbor.kind != plant.kind {
-                    result.push(Fence::Horizontal(Coordinate {
-                        x: plant.position.x,
-                        y: plant.position.y + 1,
-                    }));
+                    result.push(Fence::Horizontal);
                 }
             } else {
                 // Map boundary counts as perimeter
-                result.push(Fence::Horizontal(Coordinate {
-                    x: plant.position.x,
-                    y: plant.position.y + 1,
-                }));
+                result.push(Fence::Horizontal);
             }
         }
 

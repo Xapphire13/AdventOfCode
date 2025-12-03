@@ -216,28 +216,6 @@ impl Map {
         result
     }
 
-    fn display(&self) {
-        let ((min_x, max_x), (min_y, max_y)) = self.get_bounds();
-
-        for y in min_y..=max_y {
-            print!("{:>3} ", y);
-
-            for x in min_x..=max_x {
-                print!(
-                    "{}",
-                    match self.get(Position(x, y)) {
-                        MapCell::Beacon => 'B',
-                        MapCell::Sensor => 'S',
-                        MapCell::NotBeacon => '#',
-                        MapCell::Unknown => '.',
-                    }
-                )
-            }
-
-            println!();
-        }
-    }
-
     fn get_bounds(&self) -> ((i32, i32), (i32, i32)) {
         let mut min_x = i32::MAX;
         let mut max_x = i32::MIN;
