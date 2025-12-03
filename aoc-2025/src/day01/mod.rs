@@ -4,7 +4,7 @@ pub struct Day1;
 
 const MAX_POSITION: u32 = 99;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Rotation {
     Left(u32),
     Right(u32),
@@ -51,7 +51,46 @@ impl Solution for Day1 {
     }
 
     fn part2(&self, input: &str) -> String {
-        String::from("todo")
+        let rotations = parse_input(input);
+        let mut dial = Dial::new();
+        let mut result = 0u32;
+
+        for rotation in rotations {
+            // Increment for each whole rotation
+            match rotation {
+                Rotation::Left(distance) | Rotation::Right(distance) => {
+                    let number_of_positions = MAX_POSITION + 1;
+
+                    if distance > number_of_positions {
+                        // Each whole rotation will go past 0
+                        result += distance / number_of_positions;
+                    }
+                }
+            }
+
+            let original_position = dial.position;
+
+            dial.rotate(rotation.clone());
+
+            // Increment if the original and final positions crossed zero
+            if dial.position != 0 && original_position != 0 {
+                match rotation {
+                    Rotation::Left(_) if dial.position > original_position => {
+                        result += 1;
+                    }
+                    Rotation::Right(_) if dial.position < original_position => {
+                        result += 1;
+                    }
+                    _ => {}
+                }
+            }
+
+            if dial.position == 0 {
+                result += 1;
+            }
+        }
+
+        result.to_string()
     }
 }
 
