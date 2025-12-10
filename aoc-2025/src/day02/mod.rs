@@ -29,7 +29,20 @@ impl Solution for Day2 {
     }
 
     fn part2(&self, input: &str) -> String {
-        String::from("todo")
+        let mut result = 0u64;
+        let ranges = parse_input(input);
+
+        for range in ranges {
+            for i in range.0..=range.1 {
+                let id = i.to_string();
+
+                if check_id(id) {
+                    result += i;
+                }
+            }
+        }
+
+        result.to_string()
     }
 }
 
@@ -48,4 +61,25 @@ fn parse_input(input: &str) -> Vec<Range> {
             )
         })
         .collect()
+}
+
+fn check_id(id: String) -> bool {
+    'width: for width in 1..=id.len() / 2 {
+        let (pattern, haystack) = id.split_at(width);
+
+        if !haystack.len().is_multiple_of(width) {
+            continue;
+        }
+
+        for i in (0..haystack.len()).step_by(width) {
+            if pattern != &haystack[i..i + width] {
+                continue 'width;
+            }
+        }
+
+        // We found an invalid ID if `pattern` repeats an exact number of times in `haystack`
+        return true;
+    }
+
+    false
 }
