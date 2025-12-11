@@ -1,8 +1,8 @@
 use std::collections::{HashMap, HashSet};
 
-use shared::Solution;
 use colored::{Colorize, CustomColor};
 use palette::{FromColor, Hsl, Srgb};
+use shared::Solution;
 
 fn hsl_to_color(hsl: Hsl) -> CustomColor {
     let rgb: Srgb<u8> = Srgb::from_color(hsl).into();

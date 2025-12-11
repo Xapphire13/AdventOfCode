@@ -1,5 +1,5 @@
-use shared::Solution;
 use regex::Regex;
+use shared::Solution;
 
 pub struct Day3;
 

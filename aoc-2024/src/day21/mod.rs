@@ -222,11 +222,15 @@ impl Problem {
             let sub_sequences = keypad
                 .input_sequences
                 .get(&(from.clone(), to.clone()))
-                .unwrap_or_else(|| panic!("from: {}, to: {}, depth: {}\n{:#?}",
+                .unwrap_or_else(|| {
+                    panic!(
+                        "from: {}, to: {}, depth: {}\n{:#?}",
                         from.to_string(),
                         to.to_string(),
                         depth,
-                        keypad.input_sequences));
+                        keypad.input_sequences
+                    )
+                });
 
             result += sub_sequences
                 .iter()

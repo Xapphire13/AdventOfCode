@@ -175,9 +175,7 @@ impl Map {
     }
 
     fn get(&self, position: Position) -> MapCell {
-        if self
-            .beacons.contains(&position)
-        {
+        if self.beacons.contains(&position) {
             return MapCell::Beacon;
         }
 
