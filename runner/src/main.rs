@@ -234,8 +234,8 @@ fn update_lib_rs(lib_path: &str, day_num: u32) -> Result<bool, Box<dyn std::erro
         }) = item
         {
             let ident_str = ident.to_string();
-            if ident_str.starts_with("day") {
-                if let Ok(num) = ident_str[3..].parse::<u32>() {
+            if let Some(stripped) = ident_str.strip_prefix("day") {
+                if let Ok(num) = stripped.parse::<u32>() {
                     days.insert(num);
                 }
             }
