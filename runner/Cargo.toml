@@ -12,4 +12,8 @@ aoc-2022 = { path = "../aoc-2022" }
 aoc-2024 = { path = "../aoc-2024" }
 aoc-2025 = { path = "../aoc-2025" }
 colored = { workspace = true }
+prettyplease = "0.2.37"
+proc-macro2 = "1.0.103"
+quote = "1.0.42"
 shared = {path = "../shared"}
+syn = "2.0.111"

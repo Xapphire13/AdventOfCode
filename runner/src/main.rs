@@ -1,9 +1,12 @@
 use colored::Colorize;
+use quote::quote;
 use shared::Solution;
+use std::collections::BTreeSet;
 use std::env;
 use std::fs;
 use std::process;
 use std::time::Instant;
+use syn::{parse_file, File, Item, ItemMod, Visibility};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -177,9 +180,24 @@ fn create_solution(year: u32, day: u32) {
 
     // Update lib.rs to include the new day module
     let lib_path = format!("{crate_name}/src/lib.rs");
-    if let Ok(lib_content) = fs::read_to_string(&lib_path) {
-        let day_mod = format!("pub mod day{day:02};");
-        if !lib_content.contains(&day_mod) {
+    match update_lib_rs(&lib_path, day) {
+        Ok(updated) => {
+            if updated {
+                println!("{}", format!("✓ Updated {lib_path}").green());
+
+                // Run cargo fmt on the updated file
+                if let Err(e) = std::process::Command::new("cargo")
+                    .args(["fmt", "--", &lib_path])
+                    .output()
+                {
+                    eprintln!("Warning: Failed to run cargo fmt: {e}");
+                }
+            } else {
+                println!("{}", format!("✓ Day {day} already in {lib_path}").yellow());
+            }
+        }
+        Err(e) => {
+            eprintln!("Error updating {lib_path}: {e}");
             println!(
                 "{}",
                 format!("⚠ Don't forget to add 'pub mod day{day:02};' to {crate_name}/src/lib.rs")
@@ -199,4 +217,92 @@ fn create_solution(year: u32, day: u32) {
             .bright_green()
             .bold()
     );
+}
+
+fn update_lib_rs(lib_path: &str, day_num: u32) -> Result<bool, Box<dyn std::error::Error>> {
+    let source_code = fs::read_to_string(lib_path)?;
+    let mut ast: File = parse_file(&source_code)?;
+
+    // Collect all existing day modules
+    let mut days = BTreeSet::new();
+    for item in &ast.items {
+        if let Item::Mod(ItemMod {
+            vis: Visibility::Public(_),
+            ident,
+            semi: Some(_),
+            ..
+        }) = item
+        {
+            let ident_str = ident.to_string();
+            if ident_str.starts_with("day") {
+                if let Ok(num) = ident_str[3..].parse::<u32>() {
+                    days.insert(num);
+                }
+            }
+        }
+    }
+
+    // Check if day already exists
+    if days.contains(&day_num) {
+        return Ok(false);
+    }
+
+    // Add the new day
+    days.insert(day_num);
+
+    // Rebuild the AST items
+    let mut new_items = Vec::new();
+
+    // Add use statement
+    new_items.push(syn::parse_quote! {
+        use shared::Solution;
+    });
+
+    // Add all module declarations
+    for day in &days {
+        let day_str = syn::Ident::new(&format!("day{:02}", day), proc_macro2::Span::call_site());
+        new_items.push(syn::parse_quote! {
+            pub mod #day_str;
+        });
+    }
+
+    // Build the vec entries
+    let vec_entries: Vec<_> = days
+        .iter()
+        .map(|day| {
+            let day_mod =
+                syn::Ident::new(&format!("day{:02}", day), proc_macro2::Span::call_site());
+            let day_struct =
+                syn::Ident::new(&format!("Day{}", day), proc_macro2::Span::call_site());
+            quote! {
+                (#day, Box::new(#day_mod::#day_struct))
+            }
+        })
+        .collect();
+
+    // Add the get_solutions function
+    new_items.push(syn::parse_quote! {
+        pub fn get_solutions() -> Vec<(u32, Box<dyn Solution>)> {
+            vec![#(#vec_entries),*]
+        }
+    });
+
+    ast.items = new_items;
+
+    // Format with prettyplease
+    let formatted = prettyplease::unparse(&ast);
+
+    // Add blank line before get_solutions function
+    let mut result = String::new();
+    for line in formatted.lines() {
+        if line.trim().starts_with("pub fn get_solutions") {
+            result.push('\n');
+        }
+        result.push_str(line);
+        result.push('\n');
+    }
+
+    fs::write(lib_path, result)?;
+
+    Ok(true)
 }
