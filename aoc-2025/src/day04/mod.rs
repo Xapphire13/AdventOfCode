@@ -18,46 +18,46 @@ struct Map {
 impl Solution for Day4 {
     fn part1(&self, input: &str) -> String {
         let map = Day4::parse_input(input);
-        let mut result = 0;
 
-        for row in 0..map.row_count {
-            for col in 0..map.col_count {
-                let coord = Coordinate(row, col);
-
-                if let Some(Cell::Paper) = map.get_at_coord(&coord) {
-                    let neighbors = map.get_neighbors(&coord);
-                    let paper_neighbor_count = neighbors
-                        .iter()
-                        .filter(|&neighbor| match neighbor {
-                            Cell::Empty => false,
-                            Cell::Paper => true,
-                        })
-                        .count();
-
-                    if paper_neighbor_count < 4 {
-                        result += 1;
-                    }
-                }
-            }
-        }
-
-        result.to_string()
+        map.find_removable_paper().len().to_string()
     }
 
     fn part2(&self, input: &str) -> String {
-        String::from("todo")
+        let mut map = Day4::parse_input(input);
+        let mut total_removed = 0;
+        let mut removable_paper = map.find_removable_paper();
+
+        while !removable_paper.is_empty() {
+            total_removed += removable_paper.len();
+
+            for coord in removable_paper {
+                if let Some(index) = map.get_index(&coord) {
+                    map.cells[index] = Cell::Empty;
+                }
+            }
+
+            removable_paper = map.find_removable_paper();
+        }
+
+        total_removed.to_string()
     }
 }
 
 impl Map {
-    fn get_at_coord(&self, coord: &Coordinate) -> Option<Cell> {
+    fn get_index(&self, coord: &Coordinate) -> Option<usize> {
         if coord.row() >= self.row_count || coord.col() >= self.col_count {
             return None;
         }
 
-        let index = coord.row() * self.col_count + coord.col();
+        Some(coord.row() * self.col_count + coord.col())
+    }
 
-        self.cells.get(index).cloned()
+    fn get_at_coord(&self, coord: &Coordinate) -> Option<Cell> {
+        if let Some(index) = self.get_index(coord) {
+            self.cells.get(index).cloned()
+        } else {
+            None
+        }
     }
 
     fn get_neighbors(&self, coord: &Coordinate) -> Vec<Cell> {
@@ -71,6 +71,33 @@ impl Map {
 
                 if let Some(cell) = self.get_at_coord(&Coordinate(row, col)) {
                     result.push(cell);
+                }
+            }
+        }
+
+        result
+    }
+
+    fn find_removable_paper(&self) -> Vec<Coordinate> {
+        let mut result = vec![];
+
+        for row in 0..self.row_count {
+            for col in 0..self.col_count {
+                let coord = Coordinate(row, col);
+
+                if let Some(Cell::Paper) = self.get_at_coord(&coord) {
+                    let neighbors = self.get_neighbors(&coord);
+                    let paper_neighbor_count = neighbors
+                        .iter()
+                        .filter(|&neighbor| match neighbor {
+                            Cell::Empty => false,
+                            Cell::Paper => true,
+                        })
+                        .count();
+
+                    if paper_neighbor_count < 4 {
+                        result.push(coord);
+                    }
                 }
             }
         }
