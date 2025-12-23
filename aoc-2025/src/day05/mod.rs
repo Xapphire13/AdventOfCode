@@ -1,9 +1,13 @@
+use std::mem;
+
 use shared::Solution;
 
 pub struct Day5;
 
+#[derive(Debug)]
 struct IdRange(usize, usize);
 
+#[derive(Debug)]
 struct Database {
     ranges: Vec<IdRange>,
     available_ingredient_ids: Vec<usize>,
@@ -17,13 +21,37 @@ impl Solution for Day5 {
     }
 
     fn part2(&self, input: &str) -> String {
-        String::from("todo")
+        let mut db = Database::new(input);
+        db.compact();
+        let result = db.ranges.iter().fold(0, |acc, range| acc + range.size());
+
+        result.to_string()
     }
 }
 
 impl IdRange {
     fn contains(&self, id: usize) -> bool {
         (self.0..=self.1).contains(&id)
+    }
+
+    fn overlaps_with(&self, other: &IdRange) -> bool {
+        if other.contains(self.0)
+            || other.contains(self.1)
+            || self.contains(other.0)
+            || self.contains(other.1)
+        {
+            return true;
+        }
+
+        false
+    }
+
+    fn combine(&self, other: &IdRange) -> IdRange {
+        IdRange(self.0.min(other.0), self.1.max(other.1))
+    }
+
+    fn size(&self) -> usize {
+        (self.1 - self.0) + 1
     }
 }
 
@@ -71,5 +99,30 @@ impl Database {
         }
 
         result
+    }
+
+    /// Combines overlapping ID ranges
+    fn compact(&mut self) {
+        let mut to_process = mem::take(&mut self.ranges)
+            .into_iter()
+            .map(Some)
+            .collect::<Vec<_>>();
+
+        'outer: for i in 0..(to_process.len() - 1) {
+            if let Some(candidate) = to_process[i].take() {
+                for other_opt in to_process.iter_mut().skip(i + 1) {
+                    if let Some(other) = &other_opt
+                        && candidate.overlaps_with(other)
+                    {
+                        other_opt.replace(candidate.combine(other));
+                        continue 'outer;
+                    }
+                }
+
+                to_process[i].replace(candidate);
+            }
+        }
+
+        self.ranges = to_process.into_iter().flatten().collect();
     }
 }
