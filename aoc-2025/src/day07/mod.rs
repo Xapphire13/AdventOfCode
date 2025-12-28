@@ -12,10 +12,32 @@ enum Cell {
     Splitter,
 }
 
-impl Solution for Day7 {
-    fn part1(&self, input: &str) -> String {
-        let problem = Grid::<Cell>::new(input);
-        let mut cursor = problem.get_cursor(&Coordinate::new(0, 0));
+impl FromStr for Cell {
+    type Err = anyhow::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "." => Ok(Cell::Empty),
+            "S" => Ok(Cell::Start),
+            "^" => Ok(Cell::Splitter),
+            _ => Err(anyhow!("Invalid string")),
+        }
+    }
+}
+
+struct Problem {
+    grid: Grid<Cell>,
+}
+
+impl Problem {
+    fn new(input: &str) -> Self {
+        Self {
+            grid: Grid::<Cell>::new(input),
+        }
+    }
+
+    fn number_of_splitters_activated(&self) -> u32 {
+        let mut cursor = self.grid.get_cursor(&Coordinate::new(0, 0));
 
         while !matches!(cursor.value(), Cell::Start) {
             cursor.next();
@@ -64,23 +86,18 @@ impl Solution for Day7 {
             }
         }
 
-        splitter_positions.len().to_string()
+        splitter_positions.len() as u32
+    }
+}
+
+impl Solution for Day7 {
+    fn part1(&self, input: &str) -> String {
+        let problem = Problem::new(input);
+
+        problem.number_of_splitters_activated().to_string()
     }
 
     fn part2(&self, input: &str) -> String {
         String::from("todo")
-    }
-}
-
-impl FromStr for Cell {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "." => Ok(Cell::Empty),
-            "S" => Ok(Cell::Start),
-            "^" => Ok(Cell::Splitter),
-            _ => Err(anyhow!("Invalid string")),
-        }
     }
 }
