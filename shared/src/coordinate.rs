@@ -1,3 +1,5 @@
+use crate::Direction;
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Coordinate(pub usize, pub usize);
 
@@ -22,27 +24,24 @@ impl Coordinate {
         self.0
     }
 
-    pub fn down(&self) -> Coordinate {
-        Coordinate::new(self.row() + 1, self.col())
-    }
+    pub fn move_in(&self, direction: Direction) -> Option<Coordinate> {
+        match direction {
+            Direction::Up => {
+                if self.row() == 0 {
+                    return None;
+                }
 
-    pub fn up(&self) -> Option<Coordinate> {
-        if self.row() == 0 {
-            return None;
+                Some(Coordinate::new(self.row() - 1, self.col()))
+            }
+            Direction::Down => Some(Coordinate::new(self.row() + 1, self.col())),
+            Direction::Left => {
+                if self.col() == 0 {
+                    return None;
+                }
+
+                Some(Coordinate::new(self.row(), self.col() - 1))
+            }
+            Direction::Right => Some(Coordinate::new(self.row(), self.col() + 1)),
         }
-
-        Some(Coordinate::new(self.row() - 1, self.col()))
-    }
-
-    pub fn left(&self) -> Option<Coordinate> {
-        if self.col() == 0 {
-            return None;
-        }
-
-        Some(Coordinate::new(self.row(), self.col() - 1))
-    }
-
-    pub fn right(&self) -> Coordinate {
-        Coordinate::new(self.row(), self.col() + 1)
     }
 }

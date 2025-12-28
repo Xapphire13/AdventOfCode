@@ -1,19 +1,12 @@
 use std::{fmt::Debug, str::FromStr};
 
-use crate::Coordinate;
+use crate::{Coordinate, Direction};
 
 #[derive(Debug)]
 pub struct Grid<TCell> {
     data: Vec<TCell>,
     row_count: usize,
     col_count: usize,
-}
-
-#[derive(Debug)]
-pub struct GridCursor<'a, TCell> {
-    pub position: Coordinate,
-
-    grid: &'a Grid<TCell>,
 }
 
 impl<TCell: FromStr> Grid<TCell> {
@@ -67,52 +60,45 @@ impl<TCell> Grid<TCell> {
         index
     }
 
+    pub fn iter(&self) -> Iter<'_, TCell> {
+        Iter {
+            grid: self,
+            cursor: None,
+        }
+    }
+
+    pub fn find_cursor<F>(&self, predicate: F) -> Option<GridCursor<'_, TCell>>
+    where
+        F: Fn(&TCell) -> bool,
+    {
+        self.iter().find(|cursor| predicate(cursor.value()))
+    }
+
+    #[inline]
     fn contains_position(&self, position: &Coordinate) -> bool {
         position.row() < self.row_count && position.col() < self.col_count
     }
 }
 
+#[derive(Debug)]
+pub struct GridCursor<'a, TCell> {
+    pub position: Coordinate,
+
+    grid: &'a Grid<TCell>,
+}
+
 impl<TCell> GridCursor<'_, TCell> {
-    pub fn down(&mut self) -> bool {
-        let next_pos = self.position.down();
+    pub fn move_in(&mut self, direction: Direction) -> bool {
+        if let Some(next_pos) = self.position.move_in(direction) {
+            if !self.grid.contains_position(&next_pos) {
+                return false;
+            }
 
-        if !self.grid.contains_position(&next_pos) {
-            return false;
-        }
-
-        self.position = next_pos;
-
-        true
-    }
-
-    pub fn up(&mut self) -> bool {
-        if let Some(next_pos) = self.position.up() {
             self.position = next_pos;
             return true;
         }
 
         false
-    }
-
-    pub fn left(&mut self) -> bool {
-        if let Some(next_pos) = self.position.left() {
-            self.position = next_pos;
-            return true;
-        }
-
-        false
-    }
-
-    pub fn right(&mut self) -> bool {
-        let next_pos = self.position.right();
-
-        if !self.grid.contains_position(&next_pos) {
-            return false;
-        }
-
-        self.position = next_pos;
-
-        true
     }
 }
 
@@ -122,21 +108,32 @@ impl<'a, TCell> GridCursor<'a, TCell> {
     }
 }
 
-impl<'a, TCell> Iterator for GridCursor<'a, TCell> {
-    type Item = &'a TCell;
+pub struct Iter<'a, TCell> {
+    grid: &'a Grid<TCell>,
+    cursor: Option<GridCursor<'a, TCell>>,
+}
+
+impl<'a, TCell> Iterator for Iter<'a, TCell> {
+    type Item = GridCursor<'a, TCell>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.position.col() == self.grid.col_count - 1 {
-            if self.position.row() == self.grid.row_count - 1 {
-                return None;
+        if let Some(cursor) = &mut self.cursor {
+            if cursor.position.col() == cursor.grid.col_count - 1 {
+                if cursor.position.row() == cursor.grid.row_count - 1 {
+                    return None;
+                }
+
+                cursor.position = Coordinate::new(cursor.position.row() + 1, 0);
+            } else {
+                cursor.position = Coordinate::new(cursor.position.row(), cursor.position.col() + 1);
             }
 
-            self.position = Coordinate::new(self.position.row() + 1, 0);
-        } else {
-            self.position = Coordinate::new(self.position.row(), self.position.col() + 1);
+            return Some(cursor.clone());
         }
 
-        Some(self.value())
+        let cursor = self.grid.get_cursor(&Coordinate::new(0, 0));
+        self.cursor = Some(cursor.clone());
+        Some(cursor)
     }
 }
 

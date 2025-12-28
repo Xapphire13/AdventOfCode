@@ -4,7 +4,7 @@ use std::{
 };
 
 use anyhow::anyhow;
-use shared::{Coordinate, Grid, GridCursor, Solution};
+use shared::{Coordinate, Direction, Grid, GridCursor, Solution};
 
 pub struct Day7;
 
@@ -39,16 +39,6 @@ impl Problem {
         }
     }
 
-    fn find_start_cursor(&self) -> GridCursor<'_, Cell> {
-        let mut cursor = self.grid.get_cursor(&Coordinate::new(0, 0));
-
-        while !matches!(cursor.value(), Cell::Start) {
-            cursor.next();
-        }
-
-        cursor
-    }
-
     fn number_of_timelines(&self) -> u64 {
         struct Helper {
             /// Cache of timeline counts by position. Avoids recomputing paths through the grid.
@@ -65,7 +55,7 @@ impl Problem {
 
                 let result = match cursor.value() {
                     Cell::Empty | Cell::Start => {
-                        if cursor.down() {
+                        if cursor.move_in(Direction::Down) {
                             self.timelines_at_position(cursor)
                         } else {
                             1
@@ -76,11 +66,11 @@ impl Problem {
                         let mut right_cursor = cursor;
                         let mut count = 0;
 
-                        if left_cursor.left() {
+                        if left_cursor.move_in(Direction::Left) {
                             count += self.timelines_at_position(left_cursor);
                         }
 
-                        if right_cursor.right() {
+                        if right_cursor.move_in(Direction::Right) {
                             count += self.timelines_at_position(right_cursor);
                         }
 
@@ -98,18 +88,26 @@ impl Problem {
             memo: HashMap::new(),
         };
 
-        helper.timelines_at_position(self.find_start_cursor())
+        helper.timelines_at_position(
+            self.grid
+                .find_cursor(|cell| matches!(cell, Cell::Start))
+                .unwrap(),
+        )
     }
 
     fn number_of_splitters_activated(&self) -> u32 {
-        let mut beam_cursors = vec![self.find_start_cursor()];
+        let mut beam_cursors = vec![
+            self.grid
+                .find_cursor(|cell| matches!(cell, Cell::Start))
+                .unwrap(),
+        ];
         let mut splitter_positions = HashSet::new();
 
         loop {
             let mut next_cursors = vec![];
 
             for mut cursor in beam_cursors {
-                if !cursor.down() {
+                if !cursor.move_in(Direction::Down) {
                     // Cursor moved off grid
                     continue;
                 }
@@ -119,7 +117,7 @@ impl Problem {
 
                     let mut left_cursor = cursor.clone();
 
-                    if left_cursor.left()
+                    if left_cursor.move_in(Direction::Left)
                         && next_cursors
                             .iter()
                             .all(|other: &GridCursor<Cell>| other.position != left_cursor.position)
@@ -127,7 +125,7 @@ impl Problem {
                         next_cursors.push(left_cursor);
                     }
 
-                    if cursor.right()
+                    if cursor.move_in(Direction::Right)
                         && next_cursors
                             .iter()
                             .all(|other: &GridCursor<Cell>| other.position != cursor.position)
