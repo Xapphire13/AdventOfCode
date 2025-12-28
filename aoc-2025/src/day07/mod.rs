@@ -1,4 +1,7 @@
-use std::{collections::HashSet, str::FromStr};
+use std::{
+    collections::{HashMap, HashSet},
+    str::FromStr,
+};
 
 use anyhow::anyhow;
 use shared::{Coordinate, Grid, GridCursor, Solution};
@@ -36,14 +39,70 @@ impl Problem {
         }
     }
 
-    fn number_of_splitters_activated(&self) -> u32 {
+    fn find_start_cursor(&self) -> GridCursor<'_, Cell> {
         let mut cursor = self.grid.get_cursor(&Coordinate::new(0, 0));
 
         while !matches!(cursor.value(), Cell::Start) {
             cursor.next();
         }
 
-        let mut beam_cursors = vec![cursor];
+        cursor
+    }
+
+    fn number_of_timelines(&self) -> u64 {
+        struct Helper {
+            /// Cache of timeline counts by position. Avoids recomputing paths through the grid.
+            memo: HashMap<Coordinate, u64>,
+        }
+
+        impl Helper {
+            fn timelines_at_position(&mut self, mut cursor: GridCursor<Cell>) -> u64 {
+                let position = cursor.position.clone();
+
+                if let Some(result) = self.memo.get(&position) {
+                    return *result;
+                }
+
+                let result = match cursor.value() {
+                    Cell::Empty | Cell::Start => {
+                        if cursor.down() {
+                            self.timelines_at_position(cursor)
+                        } else {
+                            1
+                        }
+                    }
+                    Cell::Splitter => {
+                        let mut left_cursor = cursor.clone();
+                        let mut right_cursor = cursor;
+                        let mut count = 0;
+
+                        if left_cursor.left() {
+                            count += self.timelines_at_position(left_cursor);
+                        }
+
+                        if right_cursor.right() {
+                            count += self.timelines_at_position(right_cursor);
+                        }
+
+                        count
+                    }
+                };
+
+                self.memo.insert(position, result);
+
+                result
+            }
+        }
+
+        let mut helper = Helper {
+            memo: HashMap::new(),
+        };
+
+        helper.timelines_at_position(self.find_start_cursor())
+    }
+
+    fn number_of_splitters_activated(&self) -> u32 {
+        let mut beam_cursors = vec![self.find_start_cursor()];
         let mut splitter_positions = HashSet::new();
 
         loop {
@@ -98,6 +157,8 @@ impl Solution for Day7 {
     }
 
     fn part2(&self, input: &str) -> String {
-        String::from("todo")
+        let problem = Problem::new(input);
+
+        problem.number_of_timelines().to_string()
     }
 }
