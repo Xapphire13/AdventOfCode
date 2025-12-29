@@ -6,6 +6,7 @@ pub mod day04;
 pub mod day05;
 pub mod day06;
 pub mod day07;
+pub mod day08;
 
 pub fn get_solutions() -> Vec<(u32, Box<dyn Solution>)> {
     vec![
@@ -16,5 +17,6 @@ pub fn get_solutions() -> Vec<(u32, Box<dyn Solution>)> {
         (5u32, Box::new(day05::Day5)),
         (6u32, Box::new(day06::Day6)),
         (7u32, Box::new(day07::Day7)),
+        (8u32, Box::new(day08::Day8)),
     ]
 }
