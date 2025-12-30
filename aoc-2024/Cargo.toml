@@ -13,3 +13,6 @@ itertools = { workspace = true }
 num = { workspace = true }
 palette = "0.7.6"
 regex = { workspace = true }
+
+[lints]
+workspace = true

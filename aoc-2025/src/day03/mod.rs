@@ -47,9 +47,8 @@ impl Solution for Day3 {
 
             let joltage: u64 = batteries
                 .iter()
-                .map(|battery| battery.to_string())
-                .collect::<Vec<_>>()
-                .join("")
+                .map(std::string::ToString::to_string)
+                .collect::<String>()
                 .parse()
                 .unwrap();
 
@@ -71,6 +70,7 @@ fn pick_digit(bank: &[u8], reserved_space: usize) -> (usize, u8) {
     (index, *value)
 }
 
+#[allow(clippy::cast_possible_truncation)]
 fn parse_input(input: &str) -> Vec<Vec<u8>> {
     input
         .lines()

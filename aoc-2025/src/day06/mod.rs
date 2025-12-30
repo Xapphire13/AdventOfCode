@@ -92,7 +92,9 @@ impl ProblemSet {
         // Figure out the width of each problem
         let mut problem_width = 0usize;
         for c in operator_line.chars() {
-            if !c.is_whitespace() {
+            if c.is_whitespace() {
+                problem_width += 1;
+            } else {
                 if problem_width > 0 {
                     problem_widths.push(problem_width - 1);
                 }
@@ -103,8 +105,6 @@ impl ProblemSet {
                     operator: Operator::parse(&c.to_string()),
                     values: vec![],
                 });
-            } else {
-                problem_width += 1;
             }
         }
 
@@ -132,7 +132,7 @@ impl ProblemSet {
     }
 
     fn grand_total(&self) -> usize {
-        self.problems.iter().map(|problem| problem.solve()).sum()
+        self.problems.iter().map(Problem::solve).sum()
     }
 
     fn get_vertical_number(data: &Vec<&str>, col: usize) -> usize {

@@ -10,3 +10,6 @@ itertools = { workspace = true }
 regex = { workspace = true }
 num = { workspace = true }
 lazy_static = "1.5.0"
+
+[lints]
+workspace = true

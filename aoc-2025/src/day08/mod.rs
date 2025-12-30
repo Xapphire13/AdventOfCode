@@ -27,7 +27,7 @@ impl Problem {
             .lines()
             .enumerate()
             .map(|(id, line)| {
-                let mut split = line.split(",");
+                let mut split = line.split(',');
 
                 JunctionBox {
                     id,
@@ -45,7 +45,7 @@ impl Problem {
 
     fn connected_circuits(&self, number_of_connections: Option<usize>) -> CircuitResult {
         let distances = self.compute_sorted_distances();
-        self.build_circuits(distances, number_of_connections)
+        self.build_circuits(&distances, number_of_connections)
     }
 
     fn compute_sorted_distances(&self) -> Vec<((usize, usize), f64)> {
@@ -68,7 +68,7 @@ impl Problem {
 
     fn build_circuits(
         &self,
-        distances: Vec<((usize, usize), f64)>,
+        distances: &[((usize, usize), f64)],
         number_of_connections: Option<usize>,
     ) -> CircuitResult {
         let mut connected_circuits: Vec<HashSet<usize>> = vec![];
@@ -103,8 +103,7 @@ impl Problem {
         circuits
             .iter()
             .position(|c| c.contains(&id))
-            .map(|idx| circuits.swap_remove(idx))
-            .unwrap_or_else(|| HashSet::from([id]))
+            .map_or_else(|| HashSet::from([id]), |idx| circuits.swap_remove(idx))
     }
 }
 
@@ -116,12 +115,12 @@ impl Solution for Day8 {
             ..
         } = problem.connected_circuits(Some(1000));
 
-        connected_circuits.sort_by_key(|c| c.len());
+        connected_circuits.sort_by_key(std::collections::HashSet::len);
         connected_circuits
             .iter()
             .rev()
             .take(3)
-            .map(|c| c.len())
+            .map(std::collections::HashSet::len)
             .reduce(|acc, e| acc * e)
             .unwrap_or(0)
             .to_string()
@@ -134,8 +133,8 @@ impl Solution for Day8 {
             ..
         } = problem.connected_circuits(None);
 
-        let left_x = problem.junctions[left_id].position.x as i64;
-        let right_x = problem.junctions[right_id].position.x as i64;
+        let left_x = i64::from(problem.junctions[left_id].position.x);
+        let right_x = i64::from(problem.junctions[right_id].position.x);
 
         (left_x * right_x).to_string()
     }

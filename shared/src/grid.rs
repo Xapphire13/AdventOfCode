@@ -10,6 +10,9 @@ pub struct Grid<TCell> {
 }
 
 impl<TCell: FromStr> Grid<TCell> {
+    /// # Panics
+    /// When input contains non-parseable characters
+    #[must_use]
     pub fn new(input: &str) -> Grid<TCell>
     where
         <TCell as FromStr>::Err: Debug,
@@ -24,7 +27,7 @@ impl<TCell: FromStr> Grid<TCell> {
             }
 
             for c in line.chars() {
-                data.push(c.to_string().parse().unwrap())
+                data.push(c.to_string().parse().unwrap());
             }
 
             row_count += 1;
@@ -39,10 +42,12 @@ impl<TCell: FromStr> Grid<TCell> {
 }
 
 impl<TCell> Grid<TCell> {
+    #[must_use]
     pub fn get(&self, position: &Coordinate) -> &TCell {
         &self.data[self.get_index(position)]
     }
 
+    #[must_use]
     pub fn get_cursor(&self, position: &Coordinate) -> GridCursor<'_, TCell> {
         GridCursor {
             position: position.clone(),
@@ -53,30 +58,38 @@ impl<TCell> Grid<TCell> {
     fn get_index(&self, position: &Coordinate) -> usize {
         let index = position.row() * self.col_count + position.col();
 
-        if index >= self.data.len() {
-            panic!("Index out of bounds");
-        }
+        assert!(index < self.data.len(), "Index out of bounds");
 
         index
     }
 
+    #[must_use]
     pub fn iter(&self) -> Iter<'_, TCell> {
-        Iter {
-            grid: self,
-            cursor: None,
-        }
+        self.into_iter()
     }
 
     pub fn find_cursor<F>(&self, predicate: F) -> Option<GridCursor<'_, TCell>>
     where
         F: Fn(&TCell) -> bool,
     {
-        self.iter().find(|cursor| predicate(cursor.value()))
+        self.into_iter().find(|cursor| predicate(cursor.value()))
     }
 
     #[inline]
     fn contains_position(&self, position: &Coordinate) -> bool {
         position.row() < self.row_count && position.col() < self.col_count
+    }
+}
+
+impl<'a, TCell> IntoIterator for &'a Grid<TCell> {
+    type Item = GridCursor<'a, TCell>;
+    type IntoIter = Iter<'a, TCell>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        Iter {
+            grid: self,
+            cursor: None,
+        }
     }
 }
 
@@ -103,6 +116,7 @@ impl<TCell> GridCursor<'_, TCell> {
 }
 
 impl<'a, TCell> GridCursor<'a, TCell> {
+    #[must_use]
     pub fn value(&self) -> &'a TCell {
         self.grid.get(&self.position)
     }

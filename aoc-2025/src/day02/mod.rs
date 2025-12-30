@@ -36,7 +36,7 @@ impl Solution for Day2 {
             for i in range.0..=range.1 {
                 let id = i.to_string();
 
-                if check_id(id) {
+                if check_id(&id) {
                     result += i;
                 }
             }
@@ -50,10 +50,10 @@ fn parse_input(input: &str) -> Vec<Range> {
     input
         .lines()
         .filter(|line| !line.is_empty())
-        .flat_map(|line| line.split(","))
+        .flat_map(|line| line.split(','))
         .filter(|range| !range.is_empty())
         .map(|range| {
-            let mut split = range.split("-");
+            let mut split = range.split('-');
 
             Range(
                 split.next().unwrap().parse().unwrap(),
@@ -63,7 +63,7 @@ fn parse_input(input: &str) -> Vec<Range> {
         .collect()
 }
 
-fn check_id(id: String) -> bool {
+fn check_id(id: &str) -> bool {
     'width: for width in 1..=id.len() / 2 {
         let (pattern, haystack) = id.split_at(width);
 

@@ -95,7 +95,7 @@ impl Problem {
         )
     }
 
-    fn number_of_splitters_activated(&self) -> u32 {
+    fn number_of_splitters_activated(&self) -> usize {
         let mut beam_cursors = vec![
             self.grid
                 .find_cursor(|cell| matches!(cell, Cell::Start))
@@ -143,7 +143,7 @@ impl Problem {
             }
         }
 
-        splitter_positions.len() as u32
+        splitter_positions.len()
     }
 }
 

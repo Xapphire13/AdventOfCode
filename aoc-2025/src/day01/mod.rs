@@ -4,7 +4,7 @@ pub struct Day1;
 
 const MAX_POSITION: u32 = 99;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 enum Rotation {
     Left(u32),
     Right(u32),
@@ -70,7 +70,7 @@ impl Solution for Day1 {
 
             let original_position = dial.position;
 
-            dial.rotate(rotation.clone());
+            dial.rotate(rotation);
 
             // Increment if the original and final positions crossed zero
             if dial.position != 0 && original_position != 0 {

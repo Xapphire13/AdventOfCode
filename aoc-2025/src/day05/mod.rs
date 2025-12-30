@@ -70,7 +70,7 @@ impl Database {
 
             if parsing_ranges {
                 let range = line
-                    .split("-")
+                    .split('-')
                     .map(|s| s.parse().unwrap())
                     .collect::<Vec<usize>>();
                 ranges.push(IdRange(range[0], range[1]));
@@ -92,7 +92,7 @@ impl Database {
     fn count_fresh_food(&self) -> usize {
         let mut result = 0;
 
-        for id in self.available_ingredient_ids.iter() {
+        for id in &self.available_ingredient_ids {
             if self.is_fresh(*id) {
                 result += 1;
             }
