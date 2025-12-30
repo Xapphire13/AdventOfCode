@@ -10,6 +10,11 @@ struct JunctionBox {
     position: IPoint3D,
 }
 
+struct CircuitResult {
+    connected_circuits: Vec<HashSet<usize>>,
+    last_connected_pair: (usize, usize),
+}
+
 #[derive(Debug)]
 struct Problem {
     junctions: Vec<JunctionBox>,
@@ -38,73 +43,81 @@ impl Problem {
         Self { junctions }
     }
 
-    fn circuits(
-        &self,
-        number_of_connections: Option<usize>,
-    ) -> (Vec<HashSet<usize>>, (usize, usize)) {
-        let mut circuits: Vec<HashSet<usize>> = vec![];
-        let mut junction_distances = vec![];
+    fn connected_circuits(&self, number_of_connections: Option<usize>) -> CircuitResult {
+        let distances = self.compute_sorted_distances();
+        self.build_circuits(distances, number_of_connections)
+    }
 
-        for junction in &self.junctions {
-            for other in &self.junctions {
-                if junction == other {
-                    continue;
-                }
+    fn compute_sorted_distances(&self) -> Vec<((usize, usize), f64)> {
+        let mut distances = vec![];
+
+        for i in 0..self.junctions.len() {
+            for j in (i + 1)..self.junctions.len() {
+                let junction = &self.junctions[i];
+                let other = &self.junctions[j];
 
                 let distance = junction.position.distance(&other.position);
 
-                let &first_id = [junction.id, other.id].iter().min().unwrap();
-                let &second_id = [junction.id, other.id].iter().max().unwrap();
-
-                junction_distances.push(((first_id, second_id), distance));
+                distances.push(((i, j), distance));
             }
         }
-        junction_distances.sort_by(|(_, lhs), (_, rhs)| lhs.total_cmp(rhs));
-        junction_distances.dedup_by_key(|d| d.0);
-        let mut last_connection = (0, 0);
 
-        for ((left_id, right_id), _) in junction_distances
+        distances.sort_by(|(_, lhs), (_, rhs)| lhs.total_cmp(rhs));
+        distances
+    }
+
+    fn build_circuits(
+        &self,
+        distances: Vec<((usize, usize), f64)>,
+        number_of_connections: Option<usize>,
+    ) -> CircuitResult {
+        let mut connected_circuits: Vec<HashSet<usize>> = vec![];
+        let mut last_connected_pair = (0, 0);
+
+        for ((left_id, right_id), _) in distances
             .iter()
-            .take(number_of_connections.unwrap_or(junction_distances.len()))
+            .take(number_of_connections.unwrap_or(distances.len()))
         {
-            let mut left_circuit = match circuits
-                .iter()
-                .enumerate()
-                .find(|(_, c)| c.contains(left_id))
-            {
-                Some((idx, _)) => circuits.swap_remove(idx),
-                None => HashSet::from([*left_id]),
-            };
-            let right_circuit = match circuits
-                .iter()
-                .enumerate()
-                .find(|(_, c)| c.contains(right_id))
-            {
-                Some((idx, _)) => circuits.swap_remove(idx),
-                None => HashSet::from([*right_id]),
-            };
+            let mut left_circuit =
+                Problem::find_or_create_circuit(&mut connected_circuits, *left_id);
+            let right_circuit = Problem::find_or_create_circuit(&mut connected_circuits, *right_id);
 
             left_circuit.extend(right_circuit);
-            circuits.push(left_circuit);
-            last_connection = (*left_id, *right_id);
+            connected_circuits.push(left_circuit);
+            last_connected_pair = (*left_id, *right_id);
 
             // All circuits connect into one
-            if circuits.len() == 1 && circuits[0].len() == self.junctions.len() {
+            if connected_circuits.len() == 1 && connected_circuits[0].len() == self.junctions.len()
+            {
                 break;
             }
         }
 
-        (circuits, last_connection)
+        CircuitResult {
+            connected_circuits,
+            last_connected_pair,
+        }
+    }
+
+    fn find_or_create_circuit(circuits: &mut Vec<HashSet<usize>>, id: usize) -> HashSet<usize> {
+        circuits
+            .iter()
+            .position(|c| c.contains(&id))
+            .map(|idx| circuits.swap_remove(idx))
+            .unwrap_or_else(|| HashSet::from([id]))
     }
 }
 
 impl Solution for Day8 {
     fn part1(&self, input: &str) -> String {
         let problem = Problem::new(input);
-        let (mut circuits, _) = problem.circuits(Some(1000));
+        let CircuitResult {
+            mut connected_circuits,
+            ..
+        } = problem.connected_circuits(Some(1000));
 
-        circuits.sort_by_key(|c| c.len());
-        circuits
+        connected_circuits.sort_by_key(|c| c.len());
+        connected_circuits
             .iter()
             .rev()
             .take(3)
@@ -116,11 +129,14 @@ impl Solution for Day8 {
 
     fn part2(&self, input: &str) -> String {
         let problem = Problem::new(input);
-        let (_, (left_id, right_id)) = problem.circuits(None);
+        let CircuitResult {
+            last_connected_pair: (left_id, right_id),
+            ..
+        } = problem.connected_circuits(None);
 
-        let left_x = problem.junctions[left_id].position.x;
-        let right_x = problem.junctions[right_id].position.x;
+        let left_x = problem.junctions[left_id].position.x as i64;
+        let right_x = problem.junctions[right_id].position.x as i64;
 
-        (left_x as i64 * right_x as i64).to_string()
+        (left_x * right_x).to_string()
     }
 }
