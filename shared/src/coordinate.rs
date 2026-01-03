@@ -4,32 +4,32 @@ use crate::Direction;
 pub struct Coordinate(pub usize, pub usize);
 
 impl Coordinate {
-    #[must_use] 
+    #[must_use]
     pub fn new(row: usize, col: usize) -> Self {
         Self(row, col)
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn x(&self) -> usize {
         self.col()
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn y(&self) -> usize {
         self.row()
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn col(&self) -> usize {
         self.1
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn row(&self) -> usize {
         self.0
     }
 
-    #[must_use] 
+    #[must_use]
     pub fn move_in(&self, direction: Direction) -> Option<Coordinate> {
         match direction {
             Direction::Up => {
@@ -49,5 +49,9 @@ impl Coordinate {
             }
             Direction::Right => Some(Coordinate::new(self.row(), self.col() + 1)),
         }
+    }
+
+    pub fn area_between(&self, other: &Coordinate) -> usize {
+        (1 + self.x().abs_diff(other.x())) * (1 + self.y().abs_diff(other.y()))
     }
 }

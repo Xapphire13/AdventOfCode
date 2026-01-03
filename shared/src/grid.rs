@@ -41,10 +41,28 @@ impl<TCell: FromStr> Grid<TCell> {
     }
 }
 
+impl<TCell: Clone> Grid<TCell> {
+    pub fn new_from_size(width: usize, height: usize, fill_value: TCell) -> Self {
+        let mut data = Vec::with_capacity(width * height);
+        data.fill(fill_value);
+
+        Grid {
+            col_count: width,
+            row_count: height,
+            data,
+        }
+    }
+}
+
 impl<TCell> Grid<TCell> {
     #[must_use]
     pub fn get(&self, position: &Coordinate) -> &TCell {
         &self.data[self.get_index(position)]
+    }
+
+    pub fn set(&mut self, position: &Coordinate, value: TCell) {
+        let index = self.get_index(position);
+        self.data[index] = value;
     }
 
     #[must_use]
